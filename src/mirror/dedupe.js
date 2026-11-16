@@ -28,6 +28,10 @@ export class SeenStore {
   add(target, fingerprint) {
     this.entries.set(this.#key(target, fingerprint), this.now() + this.ttlMs);
   }
+
+  remove(target, fingerprint) {
+    this.entries.delete(this.#key(target, fingerprint));
+  }
 }
 
 /**

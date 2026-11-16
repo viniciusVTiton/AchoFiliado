@@ -114,7 +114,7 @@ export async function processMessage(message, rawRule, deps = {}) {
       continue;
     }
     const finalText = tidy(rule.footer ? `${converted}\n\n${rule.footer}` : converted);
-    sends.push({ target, text: finalText });
+    sends.push({ target, text: finalText, fingerprint: fp });
   }
 
   if (!sends.length) {

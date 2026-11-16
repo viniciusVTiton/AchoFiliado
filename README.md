@@ -4,49 +4,45 @@ Plataforma para afiliados: garimpo de ofertas, espelhamento de grupos de WhatsAp
 
 ## Status
 
-Módulo 1 pronto: **conversor de links** (`src/links`), com uma página de testes em `web/`.
+| Módulo | Situação |
+|---|---|
+| Conversor de links | Amazon pronta; Shopee pronta via API oficial (precisa das credenciais no `.env`); Mercado Livre pendente |
+| Backend (API) | Pronto: `/api/status`, `/api/convert`, `/api/mirror/preview` |
+| Motor de espelhamento | Pronto (regras, limpeza de @ e site, deduplicação, horário, etiqueta por grupo) |
+| Conexão com o WhatsApp | Próximo passo |
+| Garimpo, fila de disparos, métricas | A fazer |
 
-- Amazon: gera o link limpo com a sua tag de associado.
-- Shopee e Mercado Livre: dependem de um provedor com a conta do afiliado conectada (API da Shopee Affiliate Open Platform e sessão do Mercado Livre). Enquanto não houver provedor, o link é listado como pendente, sem ser alterado.
-- Links curtos da Amazon (`amzn.to`) precisam ser seguidos antes da conversão.
-
-## Estrutura
-
-```
-src/links/
-  detect.js       identifica a loja pelo domínio
-  extract.js      acha e substitui links dentro de um texto
-  converters.js   conversão por loja
-  index.js        API pública: convertLink() e convertMessage()
-web/              página de testes (HTML, CSS e JS sem build)
-scripts/serve.js servidor estático de desenvolvimento
-test/             testes com o test runner nativo do Node
-```
-
-## Uso
+## Como rodar
 
 Requer Node.js 22 ou superior. Não há dependências externas.
 
 ```sh
-npm test          # roda os testes
-npm run dev       # sobe a página em http://localhost:3000/web/
+cp .env.example .env   # preencha AMAZON_TAG, SHOPEE_APP_ID e SHOPEE_APP_SECRET
+npm run dev            # abre em http://localhost:3000
+npm test               # roda os testes
 ```
 
-A página `web/` é a versão de testes da interface: cole uma mensagem e veja a conversão, com a lista dos links trocados e dos que ficaram pendentes.
+O `.env` fica fora do git. O Secret da Shopee só é usado no servidor e nunca vai para o navegador.
 
-```js
-import { convertMessage } from './src/links/index.js';
+Sem o servidor (por exemplo, na página publicada), a interface roda em modo demonstração: só a Amazon converte.
 
-const { text, changes, failed } = await convertMessage(mensagem, {
-  amazonTag: 'minhatag-20',
-  // shopeeProvider: async (url) => ({ status: 'ok', url: '...' }),
-  // mercadoLivreProvider: async (url) => ({ status: 'ok', url: '...' }),
-});
+## Estrutura
+
+```
+src/links/       detecção de loja, extração e conversão de links (roda no navegador e no servidor)
+src/providers/   integrações com APIs das lojas (Shopee), só no servidor
+src/mirror/      motor de espelhamento: regras, limpeza, deduplicação (roda nos dois)
+src/server/      servidor HTTP: API e arquivos da interface
+web/             interface (HTML, CSS e JS sem build)
+scripts/serve.js inicia o servidor
+test/            testes com o test runner nativo do Node
 ```
 
-## Próximos módulos
+## Regras do espelhamento
 
-1. Espelhamento de grupos (leitura de grupos de origem e reenvio com o link convertido)
-2. Garimpo de ofertas
-3. Fila de disparos e painel
-4. Métricas
+- Só espelha mensagens dos grupos de origem configurados, para os grupos de destino escolhidos.
+- Filtra por loja e, opcionalmente, ignora mensagens sem link de loja.
+- Troca ou remove o @ e o site de quem postou; links de loja viram os seus.
+- **Se algum link de loja não puder ser convertido, a oferta não é enviada**, para nunca postar o link de afiliado de outra pessoa.
+- Não repete a mesma oferta no mesmo grupo por 24 horas (identifica o produto pelo código, não pelo texto).
+- Janela de horário (inclusive passando da meia-noite), rodapé, troca de textos e etiqueta de afiliado por grupo.

@@ -10,6 +10,7 @@ import { replaceLinks } from './extract.js';
  * @param {string} [accounts.amazonTag]
  * @param {(url: string) => Promise<object>} [accounts.shopeeProvider]
  * @param {(url: string) => Promise<object>} [accounts.mercadoLivreProvider]
+ * @param {(url: string) => Promise<string>} [accounts.resolve]  segue links curtos (só no servidor)
  * @returns {Promise<{store: string|null, status: string, url?: string, reason?: string}>}
  */
 export async function convertLink(url, accounts = {}) {
@@ -25,6 +26,17 @@ export async function convertLink(url, accounts = {}) {
     result = await convertShopee(url, { provider: accounts.shopeeProvider });
   } else {
     result = await convertMercadoLivre(url, { provider: accounts.mercadoLivreProvider });
+  }
+
+  if (result.status === 'needs_resolve') {
+    if (!accounts.resolve) {
+      return { store, status: 'needs_resolve', url, reason: 'Link curto: precisa ser aberto no servidor antes de converter' };
+    }
+    const resolved = await accounts.resolve(url);
+    if (resolved && resolved !== url) {
+      return convertLink(resolved, { ...accounts, resolve: undefined });
+    }
+    return { store, status: 'unsupported', reason: 'Não consegui abrir o link curto' };
   }
 
   return { store, ...result };

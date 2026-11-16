@@ -19,6 +19,7 @@
       <nav class="nav" aria-label="Principal">
         <a href="#marketplaces">Lojas</a>
         <a href="#conversor">Conversor</a>
+        <a href="#espelhamento">Espelhamento</a>
         <a href="#como-funciona">Como funciona</a>
       </nav>
       <a class="btn btn-small" href="#conversor">Testar agora</a>
@@ -50,19 +51,20 @@
         <article class="card">
           <h3>Amazon</h3>
           <p>Gera o link limpo com a sua tag de associado.</p>
-          <span class="status status-ok" id="status-amazon">Pronto para usar</span>
+          <span class="status status-ok" data-store-status="amazon">Pronto para usar</span>
         </article>
         <article class="card">
           <h3>Shopee</h3>
           <p>Gera o link pela Shopee Affiliate Open Platform.</p>
-          <span class="status status-pending">Conta não conectada</span>
+          <span class="status status-pending" data-store-status="shopee">Conta não conectada</span>
         </article>
         <article class="card">
           <h3>Mercado Livre</h3>
           <p>Gera o link pela sessão de afiliado da sua conta.</p>
-          <span class="status status-pending">Sessão não conectada</span>
+          <span class="status status-pending" data-store-status="mercadolivre">Sessão não conectada</span>
         </article>
       </div>
+      <p class="mode-note" id="mode-note">Modo demonstração: só a Amazon converte. Rode o servidor com as credenciais para converter Shopee.</p>
     </section>
 
     <section id="conversor" class="container section">
@@ -113,6 +115,84 @@
       </div>
     </section>
 
+    <section id="espelhamento" class="container section">
+      <h2>Espelhamento de grupos</h2>
+      <p class="section-lead">
+        Simule o que acontece quando uma oferta chega de um grupo que você monitora: o @ e o site de quem postou saem, os links viram os seus, e a oferta só é enviada se todos os links de loja forem convertidos.
+      </p>
+
+      <div class="tool">
+        <form id="mirror-form" class="tool-form" novalidate>
+          <label class="field">
+            <span>Mensagem que chegou no grupo de origem</span>
+            <textarea id="mirror-message" rows="7" placeholder="Cole a oferta como ela veio do outro grupo..."></textarea>
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Seu @</span>
+              <input id="mirror-handle" type="text" autocomplete="off" value="@viniachados">
+            </label>
+            <label class="field">
+              <span>@ de quem postou</span>
+              <select id="mirror-handle-mode">
+                <option value="replace">Trocar pelo meu</option>
+                <option value="remove">Só remover</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Seu site (opcional)</span>
+              <input id="mirror-site" type="url" autocomplete="off" placeholder="https://...">
+            </label>
+            <label class="field">
+              <span>Site de quem postou</span>
+              <select id="mirror-site-mode">
+                <option value="remove">Só remover</option>
+                <option value="replace">Trocar pelo meu</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="field checks">
+            <legend>Lojas que podem ser espelhadas</legend>
+            <label><input type="checkbox" name="store" value="amazon" checked> Amazon</label>
+            <label><input type="checkbox" name="store" value="shopee" checked> Shopee</label>
+            <label><input type="checkbox" name="store" value="mercadolivre" checked> Mercado Livre</label>
+            <label class="check-wide"><input type="checkbox" id="mirror-only-store" checked> Ignorar mensagens sem link dessas lojas</label>
+          </fieldset>
+
+          <label class="field">
+            <span>Rodapé (opcional)</span>
+            <input id="mirror-footer" type="text" autocomplete="off" placeholder="Ex.: Entre no grupo Vini Achados">
+          </label>
+
+          <div class="form-actions">
+            <button class="btn" type="submit">Simular espelhamento</button>
+            <button class="btn btn-ghost" type="button" id="mirror-example">Usar exemplo</button>
+          </div>
+          <p class="form-error" id="mirror-error" role="alert" hidden></p>
+        </form>
+
+        <div class="tool-result" id="mirror-result" aria-live="polite" hidden>
+          <div class="result-head">
+            <h3>Resultado</h3>
+            <span id="mirror-verdict" class="verdict"></span>
+          </div>
+          <div class="result-block" id="mirror-out-block">
+            <div class="result-label">Mensagem que vai para o seu grupo</div>
+            <div id="mirror-out" class="converted"></div>
+          </div>
+          <div class="result-block" id="mirror-reason-block" hidden>
+            <div class="result-label">Por que não foi enviada</div>
+            <p id="mirror-reason" class="reason-text"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="como-funciona" class="container section">
       <h2>Como funciona</h2>
       <div class="grid-3">
@@ -138,7 +218,7 @@
   <footer class="footer">
     <div class="container footer-inner">
       <span>AchoFiliado · versão de testes</span>
-      <span class="muted">Sem credenciais no navegador</span>
+      <span class="muted" id="footer-mode">Sem credenciais no navegador</span>
     </div>
   </footer>
 </body>

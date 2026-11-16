@@ -1,0 +1,13 @@
+{
+  "name": "achofiliado",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma para afiliados: garimpo de ofertas, espelhamento de grupos e conversão de links",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

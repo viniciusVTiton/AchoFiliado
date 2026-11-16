@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>AchoFiliado: converta links de afiliado e espelhe ofertas</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="#inicio" aria-label="AchoFiliado">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span>AchoFiliado</span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#marketplaces">Lojas</a>
+        <a href="#conversor">Conversor</a>
+        <a href="#como-funciona">Como funciona</a>
+      </nav>
+      <a class="btn btn-small" href="#conversor">Testar agora</a>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero container">
+      <span class="pill"><span class="dot" aria-hidden="true"></span> Versão de testes</span>
+      <h1>Troque o link de qualquer oferta pelo seu link de afiliado</h1>
+      <p class="lead">
+        Cole uma mensagem com links da Amazon, Shopee ou Mercado Livre e receba o mesmo texto com os seus links, pronto para postar nos seus grupos.
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="#conversor">Testar o conversor</a>
+        <a class="btn btn-ghost" href="#marketplaces">Ver lojas suportadas</a>
+      </div>
+      <ul class="trust">
+        <li>Amazon com tag de associado</li>
+        <li>Shopee e Mercado Livre com conta conectada</li>
+        <li>Links que não puderem ser trocados ficam listados</li>
+      </ul>
+    </section>
+
+    <section id="marketplaces" class="container section">
+      <h2>Lojas</h2>
+      <p class="section-lead">Cada loja usa um tipo de conexão com a sua conta de afiliado.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Amazon</h3>
+          <p>Gera o link limpo com a sua tag de associado.</p>
+          <span class="status status-ok" id="status-amazon">Pronto para usar</span>
+        </article>
+        <article class="card">
+          <h3>Shopee</h3>
+          <p>Gera o link pela Shopee Affiliate Open Platform.</p>
+          <span class="status status-pending">Conta não conectada</span>
+        </article>
+        <article class="card">
+          <h3>Mercado Livre</h3>
+          <p>Gera o link pela sessão de afiliado da sua conta.</p>
+          <span class="status status-pending">Sessão não conectada</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="conversor" class="container section">
+      <h2>Conversor de links</h2>
+      <p class="section-lead">Teste aqui. Os links convertidos aparecem abaixo, e os que não puderem ser trocados são listados com o motivo.</p>
+
+      <div class="tool">
+        <form id="convert-form" class="tool-form" novalidate>
+          <label class="field">
+            <span>Tag de afiliado da Amazon</span>
+            <input id="amazon-tag" type="text" autocomplete="off" value="viniachados0a-20" placeholder="sua-tag-20">
+          </label>
+
+          <label class="field">
+            <span>Mensagem com os links</span>
+            <textarea id="message" rows="7" placeholder="Cole aqui a mensagem da oferta com os links..."></textarea>
+          </label>
+
+          <div class="form-actions">
+            <button class="btn" type="submit">Converter links</button>
+            <button class="btn btn-ghost" type="button" id="load-example">Usar exemplo</button>
+          </div>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </form>
+
+        <div class="tool-result" id="result" aria-live="polite" hidden>
+          <div class="result-head">
+            <h3>Resultado</h3>
+            <span id="result-count" class="muted"></span>
+          </div>
+
+          <div class="result-block">
+            <div class="result-label">Mensagem convertida</div>
+            <div id="converted" class="converted"></div>
+            <button class="btn btn-small btn-ghost" type="button" id="copy">Copiar mensagem</button>
+          </div>
+
+          <div class="result-block" id="changes-block" hidden>
+            <div class="result-label">Links trocados</div>
+            <ul id="changes" class="link-list"></ul>
+          </div>
+
+          <div class="result-block" id="failed-block" hidden>
+            <div class="result-label">Links não convertidos</div>
+            <ul id="failed" class="link-list"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="como-funciona" class="container section">
+      <h2>Como funciona</h2>
+      <div class="grid-3">
+        <article class="card">
+          <span class="step">1</span>
+          <h3>Cole a mensagem</h3>
+          <p>Qualquer texto com links de produto. Os links são encontrados mesmo com pontuação ao lado.</p>
+        </article>
+        <article class="card">
+          <span class="step">2</span>
+          <h3>Trocamos cada link</h3>
+          <p>Cada loja é identificada pelo domínio e convertida pela sua conta de afiliado.</p>
+        </article>
+        <article class="card">
+          <span class="step">3</span>
+          <h3>Copie e poste</h3>
+          <p>O texto volta igual ao original, só com os seus links no lugar dos antigos.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>AchoFiliado · versão de testes</span>
+      <span class="muted">Sem credenciais no navegador</span>
+    </div>
+  </footer>
+</body>
+</html>

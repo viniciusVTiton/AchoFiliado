@@ -1,544 +1,566 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#0a0a0a">
-  <title>AchoFiliado: converta links de afiliado e espelhe ofertas</title>
-  <link rel="stylesheet" href="styles.css">
-  <script type="module" src="app.js" defer></script>
-  <script type="module" src="whatsapp.js" defer></script>
-  <script type="module" src="vitrine.js" defer></script>
+  <title>AchoFiliado · Automação de ofertas para grupos de WhatsApp</title>
+  <meta name="description" content="Automatize seus grupos de ofertas no WhatsApp: troca os links pelos seus de afiliado e posta sozinho, no horário que você escolher.">
+  <meta name="theme-color" content="#07090b">
+  <style>
+    :root {
+      --bg: #07090b;
+      --surface: #0e1215;
+      --surface-2: #151a1e;
+      --border: #1f262c;
+      --text: #f2f4f5;
+      --muted: #8d98a1;
+      --accent: #f26522;
+      --accent-2: #d9531a;
+      --accent-ink: #1a0a02;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1120px, 92vw); margin: 0 auto; }
+    h1, h2, h3 { line-height: 1.12; margin: 0; letter-spacing: -0.025em; }
+    p { margin: 0; }
+
+    /* Cabeçalho */
+    .nav-wrap { position: sticky; top: 0; z-index: 20; padding: 14px 0; background: rgba(7, 9, 11, 0.6); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: border-color 0.3s ease; }
+    .nav-wrap.scrolled { border-bottom-color: var(--border); }
+    .nav { display: flex; align-items: center; gap: 28px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; }
+    .mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; }
+    .links { display: flex; gap: 22px; margin-left: auto; color: var(--muted); font-size: 0.95rem; }
+    .links a { transition: color 0.2s ease; }
+    .links a:hover { color: var(--text); }
+    .actions { display: flex; align-items: center; gap: 14px; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 20px; border-radius: 999px; border: 1px solid transparent;
+      font: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 30px -10px rgba(242, 101, 34, 0.6); }
+    .btn-primary:hover { background: #ff7a3d; box-shadow: 0 16px 36px -10px rgba(242, 101, 34, 0.7); }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { border-color: #3a4852; }
+    .btn-lg { padding: 15px 28px; font-size: 1rem; }
+    .btn-link { color: var(--text); padding: 0 6px; font-weight: 500; }
+
+    /* Hero */
+    .hero { position: relative; padding: 110px 0 80px; text-align: center; overflow: hidden; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35; pointer-events: none; animation: drift 14s ease-in-out infinite alternate; }
+    .blob.a { width: 520px; height: 520px; background: #f26522; top: -160px; left: 50%; transform: translateX(-70%); }
+    .blob.b { width: 380px; height: 380px; background: #c2410c; top: 120px; left: -120px; animation-duration: 18s; }
+    .blob.c { width: 320px; height: 320px; background: #ff9a5c; top: 180px; right: -100px; animation-duration: 16s; opacity: 0.22; }
+    @keyframes drift { from { transform: translate(-70%, 0) scale(1); } to { transform: translate(-70%, 40px) scale(1.08); } }
+    .grid-bg {
+      position: absolute; inset: 0; z-index: -1;
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+    }
+    .proof { display: inline-flex; align-items: center; gap: 12px; color: var(--muted); font-size: 0.95rem; animation: rise 0.8s ease both; }
+    .avatars { display: flex; }
+    .avatars span { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--bg); margin-left: -8px; display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; color: var(--accent-ink); background: linear-gradient(135deg, #ffb38a, var(--accent)); }
+    .avatars span:first-child { margin-left: 0; }
+    .avatars span:nth-child(2) { background: linear-gradient(135deg, #fed7aa, #ff9a5c); }
+    .avatars span:nth-child(3) { background: linear-gradient(135deg, #fdba74, #34d399); }
+    .avatars span:nth-child(4) { background: linear-gradient(135deg, #ffedd5, #ffb38a); }
+    h1.hero-title { font-size: clamp(2.6rem, 6.6vw, 4.8rem); font-weight: 800; margin: 28px auto 22px; max-width: 18ch; }
+    .word { display: inline-block; opacity: 0; transform: translateY(24px); animation: rise 0.7s cubic-bezier(.2,.7,.2,1) forwards; }
+    .accent { background: linear-gradient(90deg, var(--accent), #ffb38a 60%, var(--accent)); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; font-style: italic; animation: shine 4s linear infinite; }
+    @keyframes shine { to { background-position: 200% center; } }
+    @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .lead { color: var(--muted); font-size: 1.12rem; max-width: 60ch; margin: 0 auto; animation: rise 0.9s 0.5s ease both; }
+    .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 34px 0 0; animation: rise 0.9s 0.7s ease both; }
+
+    /* Demo animada: chat do grupo com o robô */
+    .stage { margin: 72px auto 0; position: relative; width: min(980px, 100%); height: 440px; animation: rise 1s 0.9s ease both; }
+    .phone {
+      position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+      width: 300px; height: 440px; border-radius: 40px; background: #0b0f12;
+      border: 1px solid #242d35; box-shadow: 0 50px 90px -30px rgba(0,0,0,0.8), 0 0 0 8px #0c1014;
+      overflow: hidden; text-align: left;
+    }
+    .phone-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 14px; background: #101619; border-bottom: 1px solid var(--border); }
+    .phone-head .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #f26522, #9a3412); display: grid; place-items: center; color: var(--accent-ink); font-weight: 800; font-size: 0.85rem; }
+    .phone-head b { display: block; font-size: 0.92rem; }
+    .phone-head small { color: var(--muted); font-size: 0.75rem; }
+    .chat { padding: 16px; display: grid; gap: 10px; }
+    .bubble { max-width: 88%; padding: 10px 12px; border-radius: 12px; font-size: 0.83rem; line-height: 1.45; white-space: pre-wrap; opacity: 0; transform: translateY(10px); animation: bubble 12s infinite; }
+    .bubble.in { background: #1b2228; color: #cfd6db; border-top-left-radius: 4px; }
+    .bubble.out { background: #7c2d12; color: #ffedd5; justify-self: end; border-top-right-radius: 4px; }
+    .bubble.ops { background: transparent; border: 1px dashed #2b3640; color: var(--muted); font-size: 0.75rem; justify-self: center; text-align: center; }
+    .bubble.b1 { animation-delay: 0.4s; }
+    .bubble.b2 { animation-delay: 2.2s; }
+    .bubble.b3 { animation-delay: 4.2s; }
+    .bubble.b4 { animation-delay: 6.2s; }
+    @keyframes bubble {
+      0% { opacity: 0; transform: translateY(10px); }
+      6%, 88% { opacity: 1; transform: translateY(0); }
+      96%, 100% { opacity: 0; transform: translateY(0); }
+    }
+    .bar { height: 4px; border-radius: 4px; background: #1d252c; overflow: hidden; margin-top: 2px; }
+    .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffb38a); animation: fill 12s infinite; }
+    @keyframes fill { 0% { width: 0; } 30% { width: 100%; } 100% { width: 100%; } }
+
+    .float {
+      position: absolute; padding: 14px 16px; border-radius: 16px; background: rgba(14, 18, 21, 0.85); border: 1px solid var(--border);
+      backdrop-filter: blur(10px); box-shadow: 0 20px 40px -20px rgba(0,0,0,0.7); font-size: 0.85rem; animation: float 6s ease-in-out infinite;
+      min-width: 180px;
+    }
+    .float b { display: block; font-size: 1.25rem; color: var(--accent); }
+    .float.f1 { left: 0; top: 60px; }
+    .float.f2 { right: 0; top: 170px; animation-delay: -2s; }
+    .float.f3 { left: 60px; bottom: 10px; animation-delay: -4s; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .example { font-size: 0.7rem; color: var(--muted); display: block; margin-top: 2px; }
+
+    /* Faixa de lojas */
+    .marquee { margin-top: 90px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 22px 0; overflow: hidden; }
+    .track { display: flex; gap: 64px; width: max-content; animation: scroll 26s linear infinite; }
+    .track span { color: #5b6670; font-weight: 700; font-size: 1.15rem; letter-spacing: 0.02em; white-space: nowrap; }
+    @keyframes scroll { to { transform: translateX(-50%); } }
+
+    /* Seções */
+    section { padding: 110px 0; }
+    .eyebrow { color: var(--accent); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; }
+    .section-title { font-size: clamp(2rem, 4vw, 2.9rem); font-weight: 800; margin: 14px 0 16px; }
+    .section-lead { color: var(--muted); max-width: 62ch; }
+    .head { text-align: center; margin-bottom: 58px; }
+    .head .section-lead { margin: 0 auto; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card {
+      position: relative; padding: 30px; border-radius: var(--radius); background: linear-gradient(180deg, var(--surface), #0a0d10); border: 1px solid var(--border); overflow: hidden;
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+    .card::after { content: ""; position: absolute; inset: 0; background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 0%), rgba(34,197,94,0.12), transparent 40%); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+    .card:hover { border-color: #2c3740; transform: translateY(-4px); }
+    .card:hover::after { opacity: 1; }
+    .icon { width: 44px; height: 44px; border-radius: 13px; background: rgba(242, 101, 34, 0.12); color: var(--accent); display: grid; place-items: center; margin-bottom: 18px; font-size: 1.3rem; }
+    .card h3 { font-size: 1.12rem; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 0.95rem; }
+
+    /* Passos com linha que se preenche */
+    .timeline { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .timeline::before { content: ""; position: absolute; top: 36px; left: 10%; right: 10%; height: 2px; background: var(--border); }
+    .timeline::after { content: ""; position: absolute; top: 36px; left: 10%; height: 2px; background: linear-gradient(90deg, var(--accent), #ffb38a); width: 0; transition: width 1.6s ease 0.2s; }
+    .timeline.in::after { width: 80%; }
+    .step { position: relative; text-align: center; padding: 0 16px; }
+    .num { width: 72px; height: 72px; margin: 0 auto 22px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 1.3rem; color: var(--accent); box-shadow: 0 0 0 8px var(--bg); }
+    .step h3 { font-size: 1.12rem; margin-bottom: 8px; }
+    .step p { color: var(--muted); font-size: 0.95rem; }
+
+    /* Planos */
+    .billing { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); margin: 0 auto 44px; }
+    .billing button { border: 0; background: transparent; color: var(--muted); padding: 9px 22px; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+    .billing button.active { background: var(--surface-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+    .billing .save { margin-left: 8px; font-size: 0.75rem; color: var(--accent); }
+    .center { display: flex; flex-direction: column; align-items: center; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; width: 100%; }
+    .plan { padding: 34px 28px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; position: relative; transition: transform 0.3s ease, border-color 0.3s ease; }
+    .plan:hover { transform: translateY(-4px); }
+    .plan.featured { border-color: rgba(242, 101, 34, 0.55); background: linear-gradient(180deg, rgba(242, 101, 34, 0.09), var(--surface) 45%); box-shadow: 0 30px 60px -30px rgba(34,197,94,0.35); }
+    .badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); font-size: 0.75rem; font-weight: 700; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+    .plan h3 { font-size: 1.25rem; }
+    .plan .desc { color: var(--muted); font-size: 0.92rem; margin: 6px 0 22px; min-height: 2.8em; }
+    .price { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; }
+    .price small { font-size: 0.95rem; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+    .price-note { color: var(--muted); font-size: 0.85rem; margin: 4px 0 24px; }
+    .plan ul { list-style: none; padding: 0; margin: 0 0 30px; display: grid; gap: 12px; }
+    .plan li { display: flex; gap: 10px; font-size: 0.95rem; color: #cfd6db; }
+    .plan li::before { content: "✓"; color: var(--accent); font-weight: 700; }
+    .plan .btn { margin-top: auto; width: 100%; }
+    .plans-note { color: var(--muted); font-size: 0.88rem; margin-top: 24px; text-align: center; }
+
+    /* Login */
+    .login { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .login-card { padding: 34px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); }
+    .field { display: grid; gap: 8px; margin-bottom: 16px; }
+    .field span { font-size: 0.88rem; color: var(--muted); }
+    .field input { width: 100%; padding: 13px 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; transition: border-color 0.2s ease; }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .login-card .btn { width: 100%; }
+    .soon { margin-top: 14px; color: var(--muted); font-size: 0.85rem; text-align: center; }
+    .checklist { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 14px; color: #cfd6db; }
+    .checklist li::before { content: "✓ "; color: var(--accent); font-weight: 700; }
+
+    /* FAQ */
+    .faq { max-width: 780px; margin: 0 auto; display: grid; gap: 10px; }
+    details { border-radius: 16px; background: var(--surface); border: 1px solid var(--border); padding: 20px 24px; transition: border-color 0.2s ease; }
+    details[open] { border-color: #2c3740; }
+    summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: var(--accent); font-size: 1.4rem; transition: transform 0.2s ease; }
+    details[open] summary::after { content: "−"; }
+    details p { color: var(--muted); margin-top: 12px; }
+
+    /* CTA final e rodapé */
+    .final { text-align: center; padding: 120px 0; position: relative; overflow: hidden; }
+    .final .blob { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 560px; height: 560px; opacity: 0.18; }
+    .final h2 { font-size: clamp(2.2rem, 4.8vw, 3.4rem); font-weight: 800; margin-bottom: 18px; }
+    .final p { color: var(--muted); margin-bottom: 34px; font-size: 1.05rem; }
+    footer { border-top: 1px solid var(--border); padding: 32px 0; color: var(--muted); font-size: 0.9rem; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+    /* Revelar ao rolar */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(.2,.7,.2,1), transform 0.8s cubic-bezier(.2,.7,.2,1); }
+    .reveal.in { opacity: 1; transform: none; }
+    .reveal.d1 { transition-delay: 0.1s; }
+    .reveal.d2 { transition-delay: 0.2s; }
+    .reveal.d3 { transition-delay: 0.3s; }
+
+    @media (max-width: 900px) {
+      .links { display: none; }
+      .features, .plans, .timeline { grid-template-columns: 1fr; }
+      .timeline::before, .timeline::after { display: none; }
+      .login { grid-template-columns: 1fr; gap: 34px; }
+      .stage { height: 500px; }
+      .float { display: none; }
+      .hero { padding-top: 70px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .reveal, .word, .bubble { opacity: 1 !important; transform: none !important; }
+    }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <a class="brand" href="#inicio" aria-label="AchoFiliado">
-        <span class="brand-mark" aria-hidden="true">A</span>
-        <span>AchoFiliado</span>
-      </a>
-      <nav class="nav" aria-label="Principal">
-        <a href="#marketplaces">Lojas</a>
-        <a href="#conversor">Conversor</a>
-        <a href="#espelhamento">Espelhamento</a>
-        <a href="#whatsapp">WhatsApp</a>
-        <a href="#vitrine">Vitrine</a>
+
+  <header class="nav-wrap" id="nav">
+    <div class="wrap nav">
+      <a class="brand" href="#inicio"><span class="mark">A</span>AchoFiliado</a>
+      <nav class="links" aria-label="Principal">
+        <a href="#funcionalidades">Funcionalidades</a>
         <a href="#como-funciona">Como funciona</a>
+        <a href="#planos">Planos</a>
+        <a href="#faq">Perguntas</a>
       </nav>
-      <a class="btn btn-small" href="#conversor">Testar agora</a>
+      <div class="actions">
+        <a class="btn-link" href="painel.html">Entrar</a>
+        <a class="btn btn-primary" href="#planos">Começar agora</a>
+      </div>
     </div>
   </header>
 
-  <div id="disconnect-banner" class="disconnect-banner" hidden>
-    <div class="container">
-      <strong>⚠️ WhatsApp desconectado</strong>
-      <span id="disconnect-reason">O robô não está postando. Verifique a conexão.</span>
-    </div>
-  </div>
-
   <main id="inicio">
-    <section class="hero container">
-      <span class="pill"><span class="dot" aria-hidden="true"></span> Versão de testes</span>
-      <h1>Troque o link de qualquer oferta pelo seu link de afiliado</h1>
-      <p class="lead">
-        Cole uma mensagem com links da Amazon, Shopee ou Mercado Livre e receba o mesmo texto com os seus links, pronto para postar nos seus grupos.
-      </p>
-      <div class="cta-row">
-        <a class="btn" href="#conversor">Testar o conversor</a>
-        <a class="btn btn-ghost" href="#marketplaces">Ver lojas suportadas</a>
-      </div>
-      <ul class="trust">
-        <li>Amazon com tag de associado</li>
-        <li>Shopee e Mercado Livre com conta conectada</li>
-        <li>Links que não puderem ser trocados ficam listados</li>
-      </ul>
-    </section>
+    <section class="hero">
+      <div class="blob a"></div>
+      <div class="blob b"></div>
+      <div class="blob c"></div>
+      <div class="grid-bg"></div>
+      <div class="wrap">
+        <div class="proof">
+          <span class="avatars"><span>A</span><span>M</span><span>R</span><span>L</span></span>
+          Grupos de ofertas rodando sozinhos
+        </div>
+        <h1 class="hero-title">
+          <span class="word" style="animation-delay:.15s">Automatize</span>
+          <span class="word" style="animation-delay:.3s">seus</span>
+          <span class="word" style="animation-delay:.45s">grupos</span>
+          <span class="word" style="animation-delay:.6s">de</span>
+          <span class="word accent" style="animation-delay:.75s">ofertas.</span>
+        </h1>
+        <p class="lead">O AchoFiliado copia as ofertas dos grupos que você escolhe, troca os links pelos seus de afiliado e posta nos seus grupos no horário que você definir.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary btn-lg" href="#planos">Ver planos →</a>
+          <a class="btn btn-ghost btn-lg" href="#como-funciona">Como funciona</a>
+        </div>
 
-    <section id="marketplaces" class="container section">
-      <h2>Lojas</h2>
-      <p class="section-lead">Cada loja usa um tipo de conexão com a sua conta de afiliado.</p>
-      <div class="grid-3">
-        <article class="card">
-          <h3>Amazon</h3>
-          <p>Gera o link limpo com a sua tag de associado.</p>
-          <span class="status status-ok" data-store-status="amazon">Pronto para usar</span>
-        </article>
-        <article class="card">
-          <h3>Shopee</h3>
-          <p>Gera o link pela Shopee Affiliate Open Platform.</p>
-          <span class="status status-pending" data-store-status="shopee">Conta não conectada</span>
-        </article>
-        <article class="card">
-          <h3>Mercado Livre</h3>
-          <p>Gera o link pela sessão de afiliado da sua conta.</p>
-          <span class="status status-pending" data-store-status="mercadolivre">Sessão não conectada</span>
-        </article>
-      </div>
-      <p class="mode-note" id="mode-note">Modo demonstração: só a Amazon converte. Rode o servidor com as credenciais para converter Shopee.</p>
-    </section>
-
-    <section id="conversor" class="container section">
-      <h2>Conversor de links</h2>
-      <p class="section-lead">Teste aqui. Os links convertidos aparecem abaixo, e os que não puderem ser trocados são listados com o motivo.</p>
-
-      <div class="tool">
-        <form id="convert-form" class="tool-form" novalidate>
-          <label class="field">
-            <span>Tag de afiliado da Amazon</span>
-            <input id="amazon-tag" type="text" autocomplete="off" value="viniachados0a-20" placeholder="sua-tag-20">
-          </label>
-
-          <label class="field">
-            <span>Mensagem com os links</span>
-            <textarea id="message" rows="7" placeholder="Cole aqui a mensagem da oferta com os links..."></textarea>
-          </label>
-
-          <div class="form-actions">
-            <button class="btn" type="submit">Converter links</button>
-            <button class="btn btn-ghost" type="button" id="load-example">Usar exemplo</button>
+        <div class="stage" aria-label="Demonstração do robô postando uma oferta">
+          <div class="float f1"><span>Ofertas enviadas</span><b>exemplo</b><span class="example">depende do seu grupo</span></div>
+          <div class="float f2"><span>Link trocado pelo seu</span><b>✓</b><span class="example">nunca posta link de outra pessoa</span></div>
+          <div class="phone">
+            <div class="phone-head">
+              <span class="av">A</span>
+              <div><b>Ofertas Impressão 3D</b><small>grupo de origem</small></div>
+            </div>
+            <div class="chat">
+              <div class="bubble in b1">CUPOM MEUDESCONTOOBRA
+❌ R$ 108,78
+✅ R$ 79,00
+👉 meli.la/outro-afiliado</div>
+              <div class="bubble ops b2">robô trocando o link pelo seu...</div>
+              <div class="bubble out b3">🔥 Impressora 3D Ender 3
+❌ R$ 108,78
+✅ R$ 79,00
+Cupom: MEUDESCONTOOBRA
+👉 meli.la/seu-link</div>
+              <div class="bubble ops b4">postado no seu grupo ✓</div>
+              <div class="bar"><i></i></div>
+            </div>
           </div>
-          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </div>
+      </div>
+
+      <div class="marquee" aria-hidden="true">
+        <div class="track">
+          <span>Amazon</span><span>Shopee</span><span>Mercado Livre</span><span>WhatsApp</span><span>Filtros</span><span>Modelos</span>
+          <span>Amazon</span><span>Shopee</span><span>Mercado Livre</span><span>WhatsApp</span><span>Filtros</span><span>Modelos</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="funcionalidades">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow">Funcionalidades</span>
+          <h2 class="section-title">Tudo que o robô faz por você</h2>
+          <p class="section-lead">Da leitura da oferta até a postagem, sem você copiar e colar nada.</p>
+        </div>
+        <div class="features">
+          <article class="card reveal">
+            <div class="icon">⇄</div>
+            <h3>Troca de links automática</h3>
+            <p>Os links de afiliado de outras pessoas viram os seus, nas lojas que você escolher. Se um link não puder ser trocado, a oferta não sai.</p>
+          </article>
+          <article class="card reveal d1">
+            <div class="icon">✦</div>
+            <h3>Modelos de post</h3>
+            <p>Monte o texto com título, preço antigo e novo, cupom e link. Campo vazio some sozinho, e você salva quantos modelos quiser.</p>
+          </article>
+          <article class="card reveal d2">
+            <div class="icon">◎</div>
+            <h3>Filtros por regra</h3>
+            <p>Faixa de preço, desconto mínimo, palavras bloqueadas e linhas que devem ser apagadas, separado para cada grupo.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">⏱</div>
+            <h3>Horário e limites</h3>
+            <p>Defina quando o robô posta e quantas vezes por hora em cada grupo, para evitar bloqueio no WhatsApp.</p>
+          </article>
+          <article class="card reveal d1">
+            <div class="icon">▣</div>
+            <h3>Fotos do seu jeito</h3>
+            <p>Sem foto, com a foto original, sempre com a foto da loja ou só o link de visualização. E você pode impedir a mesma foto de repetir.</p>
+          </article>
+          <article class="card reveal d2">
+            <div class="icon">▤</div>
+            <h3>Relatório do dia</h3>
+            <p>Veja quantas ofertas saíram, quantas foram puladas e o motivo, e quantas foram para cada grupo.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="como-funciona">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow">Como funciona</span>
+          <h2 class="section-title">Três passos e o robô assume</h2>
+          <p class="section-lead">Você configura uma vez. Depois, o trabalho acontece sozinho.</p>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="step reveal">
+            <div class="num">1</div>
+            <h3>Conecte o seu número</h3>
+            <p>Leia o QR code no celular do número extra que vai ser o robô.</p>
+          </div>
+          <div class="step reveal d1">
+            <div class="num">2</div>
+            <h3>Escolha origem e destino</h3>
+            <p>Marque os grupos de onde vêm as ofertas e os seus grupos de postagem.</p>
+          </div>
+          <div class="step reveal d2">
+            <div class="num">3</div>
+            <h3>Deixe rodando</h3>
+            <p>O robô troca os links, aplica os filtros e posta no horário que você definiu.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="planos">
+      <div class="wrap center">
+        <div class="head reveal">
+          <span class="eyebrow">Planos</span>
+          <h2 class="section-title">Escolha o tamanho da sua operação</h2>
+          <p class="section-lead">Todos os planos incluem troca de links, modelos, filtros e relatório.</p>
+        </div>
+
+        <div class="billing reveal" role="tablist" aria-label="Forma de cobrança">
+          <button type="button" class="active" data-billing="mensal">Mensal</button>
+          <button type="button" data-billing="anual">Anual <span class="save">até 25% off</span></button>
+        </div>
+
+        <div class="plans">
+          <article class="plan reveal">
+            <h3>Básico</h3>
+            <p class="desc">Para quem está começando com um grupo de ofertas.</p>
+            <div class="price">R$ <span data-m="29,90" data-a="23,92">29,90</span><small> /mês</small></div>
+            <p class="price-note" data-note>cobrado mensalmente</p>
+            <ul>
+              <li>1 grupo de origem</li>
+              <li>1 número de WhatsApp</li>
+              <li>Ofertas ilimitadas</li>
+              <li>Troca de links e filtros</li>
+            </ul>
+            <a class="btn btn-ghost" href="#entrar">Quero este plano</a>
+          </article>
+
+          <article class="plan featured reveal d1">
+            <span class="badge">Mais escolhido</span>
+            <h3>Profissional</h3>
+            <p class="desc">Para quem administra vários grupos de venda.</p>
+            <div class="price">R$ <span data-m="59,90" data-a="47,92">59,90</span><small> /mês</small></div>
+            <p class="price-note" data-note>cobrado mensalmente</p>
+            <ul>
+              <li>3 grupos de origem</li>
+              <li>1 número de WhatsApp</li>
+              <li>Ofertas ilimitadas</li>
+              <li>Modelos de post salvos</li>
+              <li>Relatório por grupo</li>
+            </ul>
+            <a class="btn btn-primary" href="#entrar">Quero este plano</a>
+          </article>
+
+          <article class="plan reveal d2">
+            <h3>Avançado</h3>
+            <p class="desc">Para operações grandes, com vários números.</p>
+            <div class="price">R$ <span data-m="89,90" data-a="67,43">89,90</span><small> /mês</small></div>
+            <p class="price-note" data-note>cobrado mensalmente</p>
+            <ul>
+              <li>Grupos de origem ilimitados</li>
+              <li>3 números de WhatsApp</li>
+              <li>Ofertas ilimitadas</li>
+              <li>Tudo do Profissional</li>
+            </ul>
+            <a class="btn btn-ghost" href="#entrar">Quero este plano</a>
+          </article>
+        </div>
+        <p class="plans-note reveal">Preços por mês. No plano anual, cobrança única por ano com desconto de 20% (Básico e Profissional) e 25% (Avançado).</p>
+      </div>
+    </section>
+
+    <section id="entrar">
+      <div class="wrap login">
+        <div class="reveal">
+          <span class="eyebrow">Área do cliente</span>
+          <h2 class="section-title">Entre para acessar o seu painel</h2>
+          <p class="section-lead">Use o e-mail da compra. Depois do login você configura grupos, regras e modelos em um só lugar.</p>
+          <ul class="checklist">
+            <li>Painel com menu lateral</li>
+            <li>Regras, modelos e relatórios em um só lugar</li>
+            <li>Acesso pelo computador ou celular</li>
+          </ul>
+        </div>
+        <form class="login-card reveal d1" id="login-form" novalidate>
+          <label class="field">
+            <span>E-mail</span>
+            <input type="email" autocomplete="email" placeholder="voce@exemplo.com">
+          </label>
+          <label class="field">
+            <span>Senha</span>
+            <input type="password" autocomplete="current-password" placeholder="••••••••">
+          </label>
+          <button class="btn btn-primary" type="submit">Entrar</button>
+          <p class="soon">Login ainda não disponível. Esta tela é só a prévia.</p>
         </form>
-
-        <div class="tool-result" id="result" aria-live="polite" hidden>
-          <div class="result-head">
-            <h3>Resultado</h3>
-            <span id="result-count" class="muted"></span>
-          </div>
-
-          <div class="result-block">
-            <div class="result-label">Mensagem convertida</div>
-            <div id="converted" class="converted"></div>
-            <button class="btn btn-small btn-ghost" type="button" id="copy">Copiar mensagem</button>
-          </div>
-
-          <div class="result-block" id="changes-block" hidden>
-            <div class="result-label">Links trocados</div>
-            <ul id="changes" class="link-list"></ul>
-          </div>
-
-          <div class="result-block" id="failed-block" hidden>
-            <div class="result-label">Links não convertidos</div>
-            <ul id="failed" class="link-list"></ul>
-          </div>
-        </div>
       </div>
     </section>
 
-    <section id="espelhamento" class="container section">
-      <h2>Espelhamento de grupos</h2>
-      <p class="section-lead">
-        Simule o que acontece quando uma oferta chega de um grupo que você monitora: o @ e o site de quem postou saem, os links viram os seus, e a oferta só é enviada se todos os links de loja forem convertidos.
-      </p>
-
-      <div class="tool">
-        <form id="mirror-form" class="tool-form" novalidate>
-          <label class="field">
-            <span>Mensagem que chegou no grupo de origem</span>
-            <textarea id="mirror-message" rows="7" placeholder="Cole a oferta como ela veio do outro grupo..."></textarea>
-          </label>
-
-          <div class="field-row">
-            <label class="field">
-              <span>Seu @</span>
-              <input id="mirror-handle" type="text" autocomplete="off" value="@viniachados">
-            </label>
-            <label class="field">
-              <span>@ de quem postou</span>
-              <select id="mirror-handle-mode">
-                <option value="replace">Trocar pelo meu</option>
-                <option value="remove">Só remover</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="field-row">
-            <label class="field">
-              <span>Seu site (opcional)</span>
-              <input id="mirror-site" type="url" autocomplete="off" placeholder="https://...">
-            </label>
-            <label class="field">
-              <span>Site de quem postou</span>
-              <select id="mirror-site-mode">
-                <option value="remove">Só remover</option>
-                <option value="replace">Trocar pelo meu</option>
-              </select>
-            </label>
-          </div>
-
-          <fieldset class="field checks">
-            <legend>Lojas que podem ser espelhadas</legend>
-            <label><input type="checkbox" name="store" value="amazon" checked> Amazon</label>
-            <label><input type="checkbox" name="store" value="shopee" checked> Shopee</label>
-            <label><input type="checkbox" name="store" value="mercadolivre" checked> Mercado Livre</label>
-            <label class="check-wide"><input type="checkbox" id="mirror-only-store" checked> Ignorar mensagens sem link dessas lojas</label>
-          </fieldset>
-
-          <label class="field">
-            <span>Rodapé (opcional)</span>
-            <input id="mirror-footer" type="text" autocomplete="off" placeholder="Ex.: Entre no grupo Vini Achados">
-          </label>
-
-          <div class="form-actions">
-            <button class="btn" type="submit">Simular espelhamento</button>
-            <button class="btn btn-ghost" type="button" id="mirror-example">Usar exemplo</button>
-          </div>
-          <p class="form-error" id="mirror-error" role="alert" hidden></p>
-        </form>
-
-        <div class="tool-result" id="mirror-result" aria-live="polite" hidden>
-          <div class="result-head">
-            <h3>Resultado</h3>
-            <span id="mirror-verdict" class="verdict"></span>
-          </div>
-          <div class="result-block" id="mirror-out-block">
-            <div class="result-label">Mensagem que vai para o seu grupo</div>
-            <div id="mirror-out" class="converted"></div>
-          </div>
-          <div class="result-block" id="mirror-reason-block" hidden>
-            <div class="result-label">Por que não foi enviada</div>
-            <p id="mirror-reason" class="reason-text"></p>
-          </div>
+    <section id="faq">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow">Perguntas</span>
+          <h2 class="section-title">Dúvidas comuns</h2>
         </div>
-      </div>
-    </section>
-
-    <section id="whatsapp" class="container section">
-      <h2>Robô do WhatsApp</h2>
-      <p class="section-lead">
-        Conecte um número extra. Ele lê as ofertas dos grupos de origem e posta nos seus grupos com os seus links.
-      </p>
-      <p class="warning">
-        Use um número extra, nunca o seu principal. Este robô não é oficial do WhatsApp, e o número pode ser bloqueado.
-      </p>
-
-      <div class="tool">
-        <div class="tool-form" id="wa-panel">
-          <div class="result-head">
-            <h3>Conexão</h3>
-            <span id="wa-badge" class="verdict">Carregando...</span>
-          </div>
-          <div id="wa-qr-block" hidden>
-            <p class="muted">No celular do número extra: WhatsApp › Aparelhos conectados › Conectar um aparelho. Depois aponte para o código.</p>
-            <img id="wa-qr" class="qr" alt="Código QR para conectar o WhatsApp">
-          </div>
-          <p id="wa-info" class="muted"></p>
-          <div class="form-actions" id="wa-actions" hidden>
-            <button class="btn btn-small btn-ghost" type="button" id="wa-refresh">Atualizar grupos</button>
-            <button class="btn btn-small btn-ghost" type="button" id="wa-logout">Desconectar número</button>
-          </div>
-        </div>
-
-        <form class="tool-form rule-form" id="rule-form" novalidate hidden>
-          <h3 id="rule-form-title">Nova regra de espelhamento</h3>
-          <label class="field">
-            <span>Nome da regra</span>
-            <input id="rule-name" type="text" autocomplete="off" placeholder="Ex.: Impressão 3D">
-          </label>
-          <label class="field">
-            <span>Buscar grupo</span>
-            <input id="group-filter" type="search" autocomplete="off" placeholder="Ex.: ofertas, 3D, Vini Achados">
-          </label>
-
-          <section class="rule-section">
-            <h4>De onde vêm as ofertas?</h4>
-            <p class="muted">Escolha os grupos de origem. Só copia o que chegar nestes grupos.</p>
-            <div id="rule-sources" class="group-list"></div>
-          </section>
-
-          <section class="rule-section">
-            <h4>Para quais grupos vão?</h4>
-            <p class="muted">Aparecem os grupos do seu número. Num grupo só de admins, o robô precisa ser admin.</p>
-            <div id="rule-targets" class="group-list"></div>
-          </section>
-
-          <section class="rule-section">
-            <h4>Quais lojas trocar pelo seu link?</h4>
-            <p class="muted">Ligue ou desligue. Mensagens com link de loja desligada não vão para os seus grupos.</p>
-            <div class="store-toggles">
-              <label class="toggle"><input type="checkbox" id="rule-store-ml" checked> Mercado Livre</label>
-              <label class="toggle"><input type="checkbox" id="rule-store-shopee" checked> Shopee</label>
-              <label class="toggle"><input type="checkbox" id="rule-store-amazon" checked> Amazon</label>
-            </div>
-            <label class="toggle"><input type="checkbox" id="rule-only-stores" checked> Postar só ofertas dessas lojas</label>
-          </section>
-
-          <section class="rule-section">
-            <h4>Qual etiqueta de afiliado usar?</h4>
-            <p class="muted">Para saber, no relatório de cada loja, quanto vem deste espelhamento. Vazio = a etiqueta do grupo de destino.</p>
-            <div class="field-row">
-              <label class="field">
-                <span>Etiqueta da Amazon</span>
-                <input id="rule-amazon-tag" type="text" autocomplete="off" placeholder="Ex.: sua-tag-20">
-              </label>
-              <label class="field">
-                <span>Sub-ID da Shopee</span>
-                <input id="rule-shopee-sub" type="text" autocomplete="off" placeholder="Ex.: impressao3d">
-              </label>
-            </div>
-          </section>
-
-          <section class="rule-section">
-            <h4>Como a oferta sai?</h4>
-            <div class="radio-cards">
-              <label class="radio-card"><input type="radio" name="rule-image" value="off"><strong>Desligado, sai só o texto</strong><span>Sem foto, mesmo que o post original tenha.</span></label>
-              <label class="radio-card"><input type="radio" name="rule-image" value="original" checked><strong>Repetir o formato do post original</strong><span>Se o post veio com foto, sai com foto; se veio só com texto, sai só texto.</span></label>
-              <label class="radio-card"><input type="radio" name="rule-image" value="always"><strong>Sempre com foto</strong><span>Usa a foto do post ou, se ele não tiver, a foto da loja.</span></label>
-              <label class="radio-card"><input type="radio" name="rule-image" value="link"><strong>Sempre com link preview</strong><span>Sai só o seu link. O cartão grande com foto e título aparece sozinho no WhatsApp.</span></label>
-            </div>
-            <label class="toggle"><input type="checkbox" id="rule-no-repeat-photo"> Não repetir a mesma foto: a mesma foto, vinda de outro grupo de origem, não vai de novo para o mesmo grupo em 24 horas.</label>
-          </section>
-
-          <section class="rule-section">
-            <h4>Seu @ e seu site</h4>
-            <p class="muted">O @ e o site de quem postou nunca vão para os seus grupos: são trocados pelos seus ou removidos.</p>
-            <div class="field-row">
-              <label class="field">
-                <span>Seu @</span>
-                <input id="rule-handle" type="text" autocomplete="off" value="@viniachados">
-              </label>
-            </div>
-            <div class="seg-field">
-              <span class="seg-label">@ do Instagram</span>
-              <div class="segmented" data-seg="rule-handle-mode">
-                <button type="button" data-value="replace">Trocar pelo meu</button>
-                <button type="button" data-value="remove">Só remover</button>
-              </div>
-              <input type="hidden" id="rule-handle-mode" value="replace">
-              <p class="muted">Todo @ de outra pessoa na mensagem é apagado, sem colocar nada no lugar.</p>
-            </div>
-            <div class="field-row">
-              <label class="field">
-                <span>Seu site (opcional)</span>
-                <input id="rule-site" type="text" autocomplete="off" placeholder="Ex.: seusite.com.br">
-              </label>
-            </div>
-            <div class="seg-field">
-              <span class="seg-label">Site</span>
-              <div class="segmented" data-seg="rule-site-mode">
-                <button type="button" data-value="replace">Trocar pelo meu</button>
-                <button type="button" data-value="remove">Só remover</button>
-              </div>
-              <input type="hidden" id="rule-site-mode" value="remove">
-              <p class="muted">Todo site de outra pessoa na mensagem é apagado. Links do Mercado Livre, Shopee e Amazon continuam virando o seu link de afiliado.</p>
-            </div>
-          </section>
-
-          <section class="rule-section">
-            <h4>Quando sai?</h4>
-            <div class="radio-cards">
-              <label class="radio-card"><input type="radio" name="rule-hours" value="all" checked><strong>O dia todo</strong></label>
-              <label class="radio-card"><input type="radio" name="rule-hours" value="range"><strong>Só em um horário</strong></label>
-            </div>
-            <div class="field-row" id="rule-range" hidden>
-              <label class="field">
-                <span>Postar a partir de</span>
-                <input id="rule-start" type="time" value="08:00">
-              </label>
-              <label class="field">
-                <span>Até</span>
-                <input id="rule-end" type="time" value="22:00">
-              </label>
-            </div>
-          </section>
-
-          <section class="rule-section">
-            <h4>Como a oferta sai no grupo?</h4>
-            <p class="muted">Igual à origem, ou remontada num modelo seu.</p>
-            <div class="radio-cards">
-              <label class="radio-card"><input type="radio" name="rule-text-mode" value="edit" checked><strong>Igual à origem</strong><span>Como hoje: só troca o link pelo seu.</span></label>
-              <label class="radio-card"><input type="radio" name="rule-text-mode" value="template"><strong>No meu modelo</strong><span>Remonta a oferta num modelo seu.</span></label>
-            </div>
-            <div id="rule-template-block" hidden>
-              <div class="template-library" id="template-library"></div>
-              <div class="template-save">
-                <input id="template-name" type="text" autocomplete="off" placeholder="Nome do modelo (para salvar)">
-                <div class="form-actions">
-                  <button class="btn btn-small" type="button" id="template-save">Salvar como modelo</button>
-                  <button class="btn btn-small btn-ghost" type="button" id="template-new">+ Monte o seu</button>
-                </div>
-                <p class="form-error" id="template-error" role="alert" hidden></p>
-              </div>
-              <div class="form-actions">
-                <button class="btn btn-small btn-ghost" type="button" data-field="titulo">Título</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="preco">Preço</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="preco_antigo">Preço antigo</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="cupom">Cupom</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="loja">Loja</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="link">Meu link</button>
-                <button class="btn btn-small btn-ghost" type="button" data-field="links">Todos os meus links</button>
-              </div>
-              <select id="rule-opening" aria-label="Frases de abertura">
-                <option value="">Adicionar frase de abertura...</option>
-                <option value="🔥 OFERTA IMPERDÍVEL!">🔥 OFERTA IMPERDÍVEL!</option>
-                <option value="🚨 Achado do dia 🚨">🚨 Achado do dia 🚨</option>
-                <option value="💥 Preço caiu, corre!">💥 Preço caiu, corre!</option>
-                <option value="⚡ Oferta relâmpago">⚡ Oferta relâmpago</option>
-                <option value="✅ Vale a pena conferir">✅ Vale a pena conferir</option>
-                <option value="👀 Olha que achado">👀 Olha que achado</option>
-                <option value="🛒 Garantir antes que acabe">🛒 Garantir antes que acabe</option>
-                <option value="📉 Menor preço do momento">📉 Menor preço do momento</option>
-              </select>
-              <textarea id="rule-template" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
-              <label class="toggle"><input type="checkbox" id="rule-random-opener" checked> Sortear uma frase de abertura para cada post (60 opções, não repete logo)</label>
-            </div>
-          </section>
-
-          <details class="rule-section filters" id="rule-filters">
-            <summary>Extras (opcional)</summary>
-            <label class="field">
-              <span>Rodapé em toda oferta</span>
-              <input id="rule-footer" type="text" autocomplete="off" placeholder="Ex.: Compre com o nosso link!">
-            </label>
-            <div class="field-row">
-              <label class="field">
-                <span>Palavras e frases bloqueadas (uma por linha)</span>
-                <textarea id="rule-block" rows="3" placeholder="capinha&#10;sorteio"></textarea>
-              </label>
-              <label class="field">
-                <span>Só enviar se tiver alguma destas (vazio = tudo)</span>
-                <textarea id="rule-require" rows="3" placeholder="3d&#10;filamento&#10;impressora"></textarea>
-              </label>
-            </div>
-            <div class="field-row">
-              <label class="field">
-                <span>Preço mínimo (R$)</span>
-                <input id="rule-min" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 20">
-              </label>
-              <label class="field">
-                <span>Preço máximo (R$)</span>
-                <input id="rule-max" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 300">
-              </label>
-              <label class="field">
-                <span>Desconto mínimo (%)</span>
-                <input id="rule-min-discount" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 30">
-              </label>
-            </div>
-            <label class="field">
-              <span>Apagar linhas que contenham (uma por linha)</span>
-              <textarea id="rule-drop" rows="3" placeholder="entre no grupo&#10;link do grupo&#10;chama no privado"></textarea>
-            </label>
-            <div class="field">
-              <span>Trocar ou apagar um texto. Para apagar, deixe "Trocar por" vazio.</span>
-              <div id="rule-replacements"></div>
-              <div class="form-actions">
-                <button class="btn btn-small btn-ghost" type="button" id="rule-add-replacement">+ Outra troca</button>
-              </div>
-            </div>
+        <div class="faq">
+          <details class="reveal">
+            <summary>Preciso usar meu número principal do WhatsApp?</summary>
+            <p>Não. Recomendamos um número extra, separado do seu pessoal, porque o WhatsApp pode bloquear números que enviam muitas mensagens.</p>
           </details>
-
-          <p class="rule-summary" id="rule-summary"></p>
-          <div class="form-actions">
-            <button class="btn" type="submit" id="rule-submit">Salvar regra</button>
-            <button class="btn btn-ghost" type="button" id="rule-cancel" hidden>Cancelar edição</button>
-          </div>
-          <p class="form-error" id="rule-error" role="alert" hidden></p>
-        </form>
-
-        <form class="tool-form" id="limits-form" novalidate hidden>
-          <h3>Limites contra bloqueio</h3>
-          <p class="muted">Acima destes números o robô pula o post e registra o motivo. Valem para o clonador e para a Vitrine.</p>
-          <div class="field-row">
-            <label class="field">
-              <span>Posts por hora em cada grupo</span>
-              <input id="lim-group-hour" type="number" min="1" max="1000" step="1">
-            </label>
-            <label class="field">
-              <span>Posts por dia em cada grupo</span>
-              <input id="lim-group-day" type="number" min="1" max="1000" step="1">
-            </label>
-            <label class="field">
-              <span>Posts por hora no total</span>
-              <input id="lim-total-hour" type="number" min="1" max="1000" step="1">
-            </label>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-small" type="submit">Salvar limites</button>
-          </div>
-          <p class="form-error" id="limits-error" role="alert" hidden></p>
-          <ul id="limits-usage" class="link-list"></ul>
-        </form>
-
-        <form class="tool-form" id="tags-form" novalidate hidden>
-          <h3>Etiquetas por grupo</h3>
-          <p class="muted">Cada grupo pode ter a sua tag da Amazon e o seu sub-ID da Shopee, para o relatório mostrar de onde veio cada venda. Vazio = usa as etiquetas gerais.</p>
-          <div id="tags-rows"></div>
-          <div class="form-actions">
-            <button class="btn btn-small" type="submit">Salvar etiquetas</button>
-          </div>
-          <p class="form-error" id="tags-error" role="alert" hidden></p>
-        </form>
-
-        <div class="tool-result" id="rules-block" hidden>
-          <div class="result-label">Regras ativas</div>
-          <ul id="rules" class="link-list"></ul>
-        </div>
-
-        <div class="tool-result" id="activity-block" hidden>
-          <div class="result-label">Últimas atividades</div>
-          <p id="today-summary" class="mode-note"></p>
-          <ul id="activity" class="link-list"></ul>
+          <details class="reveal">
+            <summary>Os meus links de afiliado são usados mesmo?</summary>
+            <p>Sim. Cada link de loja é trocado pelo seu. Se algum link não puder ser convertido, a oferta não é enviada, para não postar o link de outra pessoa.</p>
+          </details>
+          <details class="reveal">
+            <summary>Funciona para quais lojas?</summary>
+            <p>Amazon, Shopee e Mercado Livre.</p>
+          </details>
+          <details class="reveal">
+            <summary>Posso cancelar quando quiser?</summary>
+            <p>Sim. Não há multa. Os valores e as condições de cancelamento serão publicados antes da venda.</p>
+          </details>
         </div>
       </div>
     </section>
 
-    <section id="vitrine" class="container section">
-      <h2>Vitrine</h2>
-      <p class="section-lead">
-        Produtos que você adicionou pela extensão do Chrome. Marque, ajuste o texto e envie para os seus grupos.
-      </p>
-      <p class="mode-note" id="ext-status">Extensão: verificando...</p>
-
-      <div class="tool">
-        <div class="tool-result" id="vitrine-empty">
-          <p class="muted">Nenhum produto ainda. Abra um produto no Mercado Livre e clique no ícone do AchoFiliado › Adicionar à Vitrine.</p>
-        </div>
-        <ul id="products" class="product-list"></ul>
-
-        <form class="tool-form" id="send-form" novalidate hidden>
-          <h3>Enviar <span id="send-count">0 produtos</span></h3>
-          <fieldset class="field checks">
-            <legend>Para estes grupos</legend>
-            <div id="send-targets" class="group-list"></div>
-          </fieldset>
-          <div class="form-actions">
-            <button class="btn" type="submit">Enviar agora</button>
-          </div>
-          <p class="mode-note">Os envios entram na fila do robô, com pausa entre cada um.</p>
-          <p class="form-error" id="send-error" role="alert" hidden></p>
-          <p class="mode-note" id="send-ok" hidden></p>
-        </form>
-      </div>
-    </section>
-
-    <section id="como-funciona" class="container section">
-      <h2>Como funciona</h2>
-      <div class="grid-3">
-        <article class="card">
-          <span class="step">1</span>
-          <h3>Cole a mensagem</h3>
-          <p>Qualquer texto com links de produto. Os links são encontrados mesmo com pontuação ao lado.</p>
-        </article>
-        <article class="card">
-          <span class="step">2</span>
-          <h3>Trocamos cada link</h3>
-          <p>Cada loja é identificada pelo domínio e convertida pela sua conta de afiliado.</p>
-        </article>
-        <article class="card">
-          <span class="step">3</span>
-          <h3>Copie e poste</h3>
-          <p>O texto volta igual ao original, só com os seus links no lugar dos antigos.</p>
-        </article>
+    <section class="final">
+      <div class="blob a"></div>
+      <div class="wrap reveal">
+        <h2>Coloque seus grupos para trabalhar</h2>
+        <p>Configure uma vez e deixe o robô postar no horário que você escolher.</p>
+        <a class="btn btn-primary btn-lg" href="#planos">Ver planos →</a>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="container footer-inner">
-      <span>AchoFiliado · versão de testes</span>
-      <span class="muted" id="footer-mode">Sem credenciais no navegador</span>
+  <footer>
+    <div class="wrap">
+      <span>© AchoFiliado</span>
+      <span>Não somos afiliados oficiais de Amazon, Shopee ou Mercado Livre.</span>
     </div>
   </footer>
+
+  <script>
+    const nav = document.getElementById('nav');
+    addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 20), { passive: true });
+
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.15 });
+    reveals.forEach((el) => io.observe(el));
+
+    const timeline = document.getElementById('timeline');
+    const tio = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) { timeline.classList.add('in'); tio.disconnect(); }
+    }, { threshold: 0.4 });
+    tio.observe(timeline);
+
+    document.querySelectorAll('.card').forEach((card) => {
+      card.addEventListener('pointermove', (e) => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+        card.style.setProperty('--my', `${e.clientY - r.top}px`);
+      });
+    });
+
+    const billingButtons = document.querySelectorAll('[data-billing]');
+    const priceSpans = document.querySelectorAll('[data-m]');
+    const priceNotes = document.querySelectorAll('[data-note]');
+    billingButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const annual = button.dataset.billing === 'anual';
+        billingButtons.forEach((b) => b.classList.toggle('active', b === button));
+        priceSpans.forEach((s) => { s.textContent = annual ? s.dataset.a : s.dataset.m; });
+        priceNotes.forEach((n) => { n.textContent = annual ? 'cobrado anualmente' : 'cobrado mensalmente'; });
+      });
+    });
+
+    document.getElementById('login-form').addEventListener('submit', (event) => event.preventDefault());
+  </script>
 </body>
 </html>
+
+
+

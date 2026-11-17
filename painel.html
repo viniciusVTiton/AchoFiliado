@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Painel · AchoFiliado</title>
+  <style>
+    :root {
+      --bg: #07090b;
+      --side: #0b0e11;
+      --surface: #0e1215;
+      --surface-2: #151a1e;
+      --border: #1f262c;
+      --text: #f2f4f5;
+      --muted: #8d98a1;
+      --accent: #f26522;
+      --accent-2: #d9531a;
+      --accent-ink: #1a0a02;
+      --soft: rgba(242, 101, 34, 0.12);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3 { margin: 0; letter-spacing: -0.02em; line-height: 1.2; }
+    p { margin: 0; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    [hidden] { display: none !important; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; font-weight: 600; font-size: 0.92rem; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: #ff7a3d; }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { border-color: #3a4852; }
+    .btn-sm { padding: 7px 12px; font-size: 0.85rem; }
+
+    .field { display: grid; gap: 7px; margin-bottom: 14px; }
+    .field span { font-size: 0.85rem; color: var(--muted); }
+    .field input { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); }
+    .field input:focus { outline: none; border-color: var(--accent); }
+
+    /* Entrada */
+    .auth { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(242,101,34,0.14), transparent 70%), var(--bg); }
+    .auth-card { width: min(420px, 100%); padding: 32px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); }
+    .auth-card .brand { margin-bottom: 22px; }
+    .auth-card h1 { font-size: 1.5rem; margin-bottom: 6px; }
+    .auth-card .sub { color: var(--muted); margin-bottom: 24px; }
+    .tabs { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); margin-bottom: 22px; }
+    .tabs button { border: 0; background: transparent; color: var(--muted); padding: 8px 18px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+    .tabs button.active { background: var(--surface-2); color: var(--text); }
+    .notice { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: var(--soft); color: #fdba74; font-size: 0.85rem; }
+    .error { color: #f87171; font-size: 0.85rem; min-height: 1.2em; margin-top: 4px; }
+    .auth-card .btn { width: 100%; }
+
+    /* Painel */
+    .app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+    .side { background: var(--side); border-right: 1px solid var(--border); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; padding: 6px 10px 18px; }
+    .mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; }
+    .group-title { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: #5b6670; padding: 16px 12px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--muted); cursor: pointer; border: 0; background: transparent; text-align: left; width: 100%; transition: background 0.15s ease, color 0.15s ease; }
+    .nav-item:hover { background: var(--surface); color: var(--text); }
+    .nav-item.active { background: var(--soft); color: var(--accent); }
+    .nav-item .ico { width: 18px; text-align: center; }
+    .side-foot { margin-top: auto; padding: 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); font-size: 0.85rem; }
+    .side-foot b { display: block; }
+    .side-foot small { color: var(--muted); }
+    .side-foot button { margin-top: 10px; width: 100%; }
+
+    .main { padding: 28px 36px 60px; min-width: 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+    .topbar h1 { font-size: 1.6rem; }
+    .topbar p { color: var(--muted); font-size: 0.92rem; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--soft); color: var(--accent); font-size: 0.78rem; font-weight: 600; }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .card h3 { font-size: 1rem; margin-bottom: 12px; }
+    .stat span { color: var(--muted); font-size: 0.85rem; }
+    .stat b { display: block; font-size: 1.7rem; margin-top: 6px; letter-spacing: -0.02em; }
+    .stat small { color: #5b6670; font-size: 0.78rem; }
+
+    .empty { text-align: center; padding: 42px 20px; color: var(--muted); border: 1px dashed var(--border); border-radius: var(--radius); }
+    .empty b { display: block; color: var(--text); margin-bottom: 6px; font-size: 1rem; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: 0; }
+    .row small { color: var(--muted); display: block; font-size: 0.82rem; }
+    .msg { white-space: pre-wrap; font: 0.86rem/1.55 ui-monospace, Consolas, monospace; color: #cfd6db; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 10px; }
+
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .side { position: static; height: auto; flex-direction: row; overflow-x: auto; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
+      .brand, .group-title, .side-foot { display: none; }
+      .nav-item { white-space: nowrap; width: auto; }
+      .main { padding: 22px 18px 50px; }
+      .grid-4, .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Entrar / criar conta -->
+  <div class="auth" id="auth" hidden>
+    <div class="auth-card">
+      <div class="brand"><span class="mark">A</span>AchoFiliado</div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="active" data-mode="entrar">Entrar</button>
+        <button type="button" data-mode="criar">Criar conta</button>
+      </div>
+      <h1 id="auth-title">Entrar no painel</h1>
+      <p class="sub" id="auth-sub">Use o e-mail da sua conta.</p>
+      <form id="auth-form" novalidate>
+        <label class="field" id="name-field" hidden>
+          <span>Nome</span>
+          <input type="text" id="auth-name" autocomplete="name">
+        </label>
+        <label class="field">
+          <span>E-mail</span>
+          <input type="email" id="auth-email" autocomplete="email" placeholder="voce@exemplo.com">
+        </label>
+        <label class="field">
+          <span>Senha</span>
+          <input type="password" id="auth-pass" autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <p class="error" id="auth-error"></p>
+        <button class="btn btn-primary" type="submit" id="auth-submit">Entrar</button>
+      </form>
+      <p class="notice">Protótipo: o login ainda não está conectado a um serviço de contas. Nenhuma senha é guardada ainda.</p>
+    </div>
+  </div>
+
+  <!-- Painel -->
+  <div class="app" id="app" hidden>
+    <aside class="side">
+      <div class="brand"><span class="mark">A</span>AchoFiliado</div>
+      <div class="group-title">Automação</div>
+      <button class="nav-item active" data-view="visao"><span class="ico">▦</span>Visão geral</button>
+      <button class="nav-item" data-view="espelhamento"><span class="ico">⇄</span>Espelhamento</button>
+      <button class="nav-item" data-view="modelos"><span class="ico">✦</span>Modelos</button>
+      <button class="nav-item" data-view="grupos"><span class="ico">◎</span>Grupos</button>
+      <div class="group-title">Acompanhar</div>
+      <button class="nav-item" data-view="relatorio"><span class="ico">▤</span>Relatório</button>
+      <div class="group-title">Conta</div>
+      <button class="nav-item" data-view="config"><span class="ico">⚙</span>Configurações</button>
+      <div class="side-foot">
+        <b id="side-name">Conta</b>
+        <small id="side-role">Administrador</small>
+        <button class="btn btn-ghost btn-sm" type="button" id="logout">Sair</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- Visão geral -->
+      <section data-section="visao">
+        <div class="topbar">
+          <div><h1>Visão geral</h1><p>Resumo da sua operação.</p></div>
+          <span class="pill">Protótipo</span>
+        </div>
+        <div class="grid-4">
+          <div class="card stat"><span>Ofertas enviadas hoje</span><b>—</b><small>sem dados ainda</small></div>
+          <div class="card stat"><span>Ofertas puladas hoje</span><b>—</b><small>sem dados ainda</small></div>
+          <div class="card stat"><span>Grupos de origem</span><b>—</b><small>nenhum conectado</small></div>
+          <div class="card stat"><span>Grupos de destino</span><b>—</b><small>nenhum conectado</small></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Atividade recente</h3>
+            <div class="empty"><b>Nada por aqui ainda</b>Quando o robô começar a postar, as últimas ações aparecem aqui.</div>
+          </div>
+          <div class="card">
+            <h3>Próximos passos</h3>
+            <div class="row"><div>Conectar o número do robô<small>Leia o QR code no celular do número extra.</small></div></div>
+            <div class="row"><div>Escolher origem e destino<small>Marque os grupos nas regras.</small></div></div>
+            <div class="row"><div>Criar um modelo de post<small>Use um dos modelos prontos como ponto de partida.</small></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Espelhamento -->
+      <section data-section="espelhamento" hidden>
+        <div class="topbar">
+          <div><h1>Espelhamento</h1><p>Regras que copiam ofertas de um grupo e postam em outro.</p></div>
+          <button class="btn btn-primary" type="button">+ Nova regra</button>
+        </div>
+        <div class="empty"><b>Nenhuma regra criada</b>Crie a primeira regra escolhendo os grupos de origem e de destino.</div>
+      </section>
+
+      <!-- Modelos -->
+      <section data-section="modelos" hidden>
+        <div class="topbar">
+          <div><h1>Modelos</h1><p>Textos que o robô usa para montar cada post.</p></div>
+          <button class="btn btn-primary" type="button">+ Monte o seu</button>
+        </div>
+        <div class="grid-2" id="templates"></div>
+      </section>
+
+      <!-- Grupos -->
+      <section data-section="grupos" hidden>
+        <div class="topbar">
+          <div><h1>Grupos</h1><p>Os grupos do número conectado, com a etiqueta de afiliado de cada um.</p></div>
+          <button class="btn btn-ghost" type="button">Atualizar grupos</button>
+        </div>
+        <div class="empty"><b>Nenhum número conectado</b>Conecte o número do robô para listar os seus grupos.</div>
+      </section>
+
+      <!-- Relatório -->
+      <section data-section="relatorio" hidden>
+        <div class="topbar">
+          <div><h1>Relatório</h1><p>O que foi enviado, pulado e por quê.</p></div>
+        </div>
+        <div class="empty"><b>Sem dados para mostrar</b>O relatório do dia aparece quando o robô começar a trabalhar.</div>
+      </section>
+
+      <!-- Configurações -->
+      <section data-section="config" hidden>
+        <div class="topbar">
+          <div><h1>Configurações</h1><p>Dados da sua conta e do seu plano.</p></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Conta</h3>
+            <div class="row"><div>E-mail<small id="cfg-email">—</small></div></div>
+            <div class="row"><div>Tipo de acesso<small id="cfg-role">—</small></div></div>
+          </div>
+          <div class="card">
+            <h3>Plano</h3>
+            <div class="row"><div>Plano atual<small>Nenhum plano ativo. A cobrança ainda não está conectada.</small></div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const SESSION_KEY = 'achofiliado-sessao';
+    const ADMIN_EMAIL = 'vini.titon@gmail.com';
+
+    const TEMPLATES = [
+      { name: 'Post padrão', text: '{titulo}\n\n❌ {preco_antigo}\n✅ {preco}\n\nCupom: {cupom}\n\n👉 {link}' },
+      { name: 'Direto e agressivo', text: '🚨 {titulo}\n❌ De {preco_antigo}\n✅ Por {preco}\nCupom: {cupom}\n👉 {link}' },
+      { name: 'Limpo', text: '🔥 Oferta do dia\n{titulo}\nDe {preco_antigo} por {preco}\n👉 {link}' },
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    let mode = 'entrar';
+
+    function readSession() {
+      try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
+    }
+
+    function showSession(session) {
+      $('auth').hidden = Boolean(session);
+      $('app').hidden = !session;
+      if (!session) return;
+      const admin = session.email.toLowerCase() === ADMIN_EMAIL;
+      $('side-name').textContent = session.name || session.email;
+      $('side-role').textContent = admin ? 'Administrador' : 'Cliente';
+      $('cfg-email').textContent = session.email;
+      $('cfg-role').textContent = admin ? 'Administrador (acesso total)' : 'Cliente';
+    }
+
+    function setMode(next) {
+      mode = next;
+      document.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === next));
+      const criar = next === 'criar';
+      $('name-field').hidden = !criar;
+      $('auth-title').textContent = criar ? 'Criar conta' : 'Entrar no painel';
+      $('auth-sub').textContent = criar ? 'Crie a sua conta para acessar o painel.' : 'Use o e-mail da sua conta.';
+      $('auth-submit').textContent = criar ? 'Criar conta' : 'Entrar';
+      $('auth-pass').autocomplete = criar ? 'new-password' : 'current-password';
+      $('auth-error').textContent = '';
+    }
+
+    document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+    $('auth-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = $('auth-email').value.trim();
+      const pass = $('auth-pass').value;
+      const name = $('auth-name').value.trim();
+      if (!/^\S+@\S+\.\S+$/.test(email)) { $('auth-error').textContent = 'Informe um e-mail válido.'; return; }
+      if (pass.length < 6) { $('auth-error').textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+      if (mode === 'criar' && !name) { $('auth-error').textContent = 'Informe o seu nome.'; return; }
+      const session = { email, name: name || email.split('@')[0] };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      showSession(session);
+    });
+
+    $('logout').addEventListener('click', () => {
+      localStorage.removeItem(SESSION_KEY);
+      showSession(null);
+    });
+
+    document.querySelectorAll('[data-view]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const view = button.dataset.view;
+        document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b === button));
+        document.querySelectorAll('[data-section]').forEach((s) => { s.hidden = s.dataset.section !== view; });
+      });
+    });
+
+    $('templates').replaceChildren(...TEMPLATES.map((t) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const title = document.createElement('h3');
+      title.textContent = t.name;
+      const pre = document.createElement('pre');
+      pre.className = 'msg';
+      pre.textContent = t.text;
+      card.append(title, pre);
+      return card;
+    }));
+
+    showSession(readSession());
+    setMode('entrar');
+  </script>
+</body>
+</html>

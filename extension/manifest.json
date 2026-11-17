@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "AchoFiliado",
+  "version": "0.1.0",
+  "description": "Gera seus links de afiliado do Mercado Livre para o robô AchoFiliado e adiciona produtos à Vitrine.",
+  "permissions": ["scripting", "alarms", "storage"],
+  "host_permissions": [
+    "https://www.mercadolivre.com.br/*",
+    "https://*.mercadolivre.com.br/*",
+    "http://localhost:3000/*"
+  ],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "AchoFiliado" }
+}

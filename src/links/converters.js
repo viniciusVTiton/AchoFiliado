@@ -42,16 +42,55 @@ export function convertAmazon(url, { tag }) {
   return { status: 'ok', url: clean.toString() };
 }
 
+const SHOPEE_SHORT_HOSTS = new Set(['s.shopee.com.br', 'shp.ee', 'shope.ee']);
+
+/**
+ * Link curto da Shopee carrega o afiliado de quem gerou: precisa ser aberto até o produto
+ * antes. Link completo é limpo (sem utm, mmp_pid etc.) para não herdar nada de outra pessoa.
+ */
 export async function convertShopee(url, { provider }) {
   if (!provider) {
     return { status: 'needs_provider', reason: 'Conta da Shopee Affiliate não conectada' };
   }
-  return provider(url);
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { status: 'unsupported', reason: 'URL inválida' };
+  }
+  if (SHOPEE_SHORT_HOSTS.has(parsed.hostname.toLowerCase())) {
+    return { status: 'needs_resolve', url };
+  }
+  const clean = `https://${parsed.hostname}${parsed.pathname}`;
+  const result = await provider(clean);
+  // Nunca devolve um link curto igual ao de entrada: isso seria o link de outra pessoa.
+  if (result.status === 'ok' && result.url === url) {
+    return { status: 'unsupported', reason: 'A Shopee devolveu o mesmo link' };
+  }
+  return result;
 }
 
+/**
+ * meli.la e mercadolivre.com/sec/... são links curtos de afiliado (de outra pessoa):
+ * precisam ser abertos antes. O provider acha o produto e gera o link na SUA conta.
+ */
 export async function convertMercadoLivre(url, { provider }) {
   if (!provider) {
     return { status: 'needs_provider', reason: 'Sessão do Mercado Livre não conectada' };
   }
-  return provider(url);
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { status: 'unsupported', reason: 'URL inválida' };
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'meli.la' || host === 'mercadolivre.com' || host === 'www.mercadolivre.com') {
+    return { status: 'needs_resolve', url };
+  }
+  const result = await provider(url);
+  if (result.status === 'ok' && result.url === url) {
+    return { status: 'unsupported', reason: 'O Mercado Livre devolveu o mesmo link' };
+  }
+  return result;
 }

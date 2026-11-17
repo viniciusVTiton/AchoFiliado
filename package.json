@@ -1,14 +1,19 @@
 {
   "name": "achofiliado",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Plataforma para afiliados: garimpo de ofertas, espelhamento de grupos e conversão de links",
   "type": "module",
+  "description": "Converte links de afiliado (Amazon, Shopee, Mercado Livre) e espelha ofertas entre grupos.",
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   },
   "scripts": {
-    "dev": "node --env-file-if-exists=.env scripts/serve.js",
-    "test": "node --test"
+    "start": "node server.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "pino": "10.4.0",
+    "qrcode": "1.5.4"
   }
 }

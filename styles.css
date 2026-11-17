@@ -14,6 +14,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -244,6 +246,116 @@ p { margin: 0 0 12px; }
 .verdict-skip { color: var(--warn); border: 1px solid rgba(251, 191, 36, 0.4); }
 .reason-text { color: var(--warn); margin: 0; }
 .mode-note { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+
+/* Banner de desconexão */
+.disconnect-banner {
+  background: rgba(248, 113, 113, 0.1);
+  border-bottom: 3px solid var(--danger);
+  padding: 16px 0;
+  position: sticky;
+  top: 64px;
+  z-index: 9;
+}
+.disconnect-banner .container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Robô do WhatsApp */
+.warning {
+  max-width: 60ch;
+  padding: 12px 14px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  color: var(--warn);
+  font-size: 0.95rem;
+}
+.qr { display: block; width: 240px; max-width: 100%; margin: 12px 0; border-radius: 10px; background: #fff; padding: 8px; }
+.group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 16px; max-height: 260px; overflow-y: auto; }
+.group-list label { margin: 4px 0; }
+.group-list .size { color: var(--muted); font-size: 0.8rem; }
+.group-list .not-admin { color: var(--warn); font-size: 0.8rem; }
+.link-list .meta { display: block; color: var(--muted); font-size: 0.8rem; margin-bottom: 2px; }
+.link-list .msg { white-space: pre-wrap; word-break: break-word; }
+.rule-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.verdict-wait { color: var(--muted); border: 1px solid var(--border); }
+
+.filters { margin: 4px 0 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+.filters summary { cursor: pointer; color: var(--muted); }
+.filters[open] summary { margin-bottom: 12px; }
+.field textarea#rule-block, .field textarea#rule-require, .field textarea#rule-drop { min-height: 72px; }
+
+/* Formulário de regra em seções */
+.rule-form { gap: 0; }
+.rule-section { padding: 18px 0; border-top: 1px solid var(--border); margin: 0; }
+.rule-section h4 { margin: 0 0 4px; font-size: 1.05rem; }
+.rule-section > p.muted { margin: 0 0 12px; font-size: 0.9rem; }
+.radio-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.radio-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.radio-card:has(input:checked) { border-color: var(--accent); }
+.radio-card input { accent-color: var(--accent); justify-self: start; }
+.radio-card span { color: var(--muted); font-size: 0.85rem; }
+.store-toggles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; margin: 6px 16px 6px 0; cursor: pointer; }
+.toggle input, .rule-form input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+.preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.rule-summary { margin: 16px 0 8px; padding: 12px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+.template-library { display: grid; gap: 10px; margin: 8px 0 14px; }
+.template-card { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.template-card.builtin { border-style: dashed; }
+.template-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.template-preview { margin: 0; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 0.9rem; color: var(--muted); background: var(--surface); border-radius: 8px; }
+.template-save { display: grid; gap: 8px; margin-bottom: 8px; }
+.seg-field { display: grid; gap: 8px; margin-bottom: 12px; }
+.seg-label { font-weight: 600; }
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); width: fit-content; }
+.segmented button { border: 0; background: transparent; color: var(--muted); padding: 8px 16px; border-radius: 999px; cursor: pointer; font: inherit; }
+.segmented button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.replacement-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+.replacement-row input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); font: inherit; }
+
+/* Vitrine */
+.product-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.product {
+  display: grid;
+  grid-template-columns: auto 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.product.selected { border-color: rgba(34, 197, 94, 0.6); }
+.product input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px; margin-top: 4px; }
+.product img { width: 72px; height: 72px; object-fit: contain; background: #fff; border-radius: 8px; }
+.product .meta { color: var(--muted); font-size: 0.8rem; }
+.product textarea {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 110px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+.product .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 
 /* Rodapé */
 .footer { border-top: 1px solid var(--border); padding: 28px 0; font-size: 0.9rem; }

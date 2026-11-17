@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>AchoFiliado: converta links de afiliado e espelhe ofertas</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js" defer></script>
+  <script type="module" src="whatsapp.js" defer></script>
+  <script type="module" src="vitrine.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="#inicio" aria-label="AchoFiliado">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <span>AchoFiliado</span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="#marketplaces">Lojas</a>
+        <a href="#conversor">Conversor</a>
+        <a href="#espelhamento">Espelhamento</a>
+        <a href="#whatsapp">WhatsApp</a>
+        <a href="#vitrine">Vitrine</a>
+        <a href="#como-funciona">Como funciona</a>
+      </nav>
+      <a class="btn btn-small" href="#conversor">Testar agora</a>
+    </div>
+  </header>
+
+  <div id="disconnect-banner" class="disconnect-banner" hidden>
+    <div class="container">
+      <strong>⚠️ WhatsApp desconectado</strong>
+      <span id="disconnect-reason">O robô não está postando. Verifique a conexão.</span>
+    </div>
+  </div>
+
+  <main id="inicio">
+    <section class="hero container">
+      <span class="pill"><span class="dot" aria-hidden="true"></span> Versão de testes</span>
+      <h1>Troque o link de qualquer oferta pelo seu link de afiliado</h1>
+      <p class="lead">
+        Cole uma mensagem com links da Amazon, Shopee ou Mercado Livre e receba o mesmo texto com os seus links, pronto para postar nos seus grupos.
+      </p>
+      <div class="cta-row">
+        <a class="btn" href="#conversor">Testar o conversor</a>
+        <a class="btn btn-ghost" href="#marketplaces">Ver lojas suportadas</a>
+      </div>
+      <ul class="trust">
+        <li>Amazon com tag de associado</li>
+        <li>Shopee e Mercado Livre com conta conectada</li>
+        <li>Links que não puderem ser trocados ficam listados</li>
+      </ul>
+    </section>
+
+    <section id="marketplaces" class="container section">
+      <h2>Lojas</h2>
+      <p class="section-lead">Cada loja usa um tipo de conexão com a sua conta de afiliado.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Amazon</h3>
+          <p>Gera o link limpo com a sua tag de associado.</p>
+          <span class="status status-ok" data-store-status="amazon">Pronto para usar</span>
+        </article>
+        <article class="card">
+          <h3>Shopee</h3>
+          <p>Gera o link pela Shopee Affiliate Open Platform.</p>
+          <span class="status status-pending" data-store-status="shopee">Conta não conectada</span>
+        </article>
+        <article class="card">
+          <h3>Mercado Livre</h3>
+          <p>Gera o link pela sessão de afiliado da sua conta.</p>
+          <span class="status status-pending" data-store-status="mercadolivre">Sessão não conectada</span>
+        </article>
+      </div>
+      <p class="mode-note" id="mode-note">Modo demonstração: só a Amazon converte. Rode o servidor com as credenciais para converter Shopee.</p>
+    </section>
+
+    <section id="conversor" class="container section">
+      <h2>Conversor de links</h2>
+      <p class="section-lead">Teste aqui. Os links convertidos aparecem abaixo, e os que não puderem ser trocados são listados com o motivo.</p>
+
+      <div class="tool">
+        <form id="convert-form" class="tool-form" novalidate>
+          <label class="field">
+            <span>Tag de afiliado da Amazon</span>
+            <input id="amazon-tag" type="text" autocomplete="off" value="viniachados0a-20" placeholder="sua-tag-20">
+          </label>
+
+          <label class="field">
+            <span>Mensagem com os links</span>
+            <textarea id="message" rows="7" placeholder="Cole aqui a mensagem da oferta com os links..."></textarea>
+          </label>
+
+          <div class="form-actions">
+            <button class="btn" type="submit">Converter links</button>
+            <button class="btn btn-ghost" type="button" id="load-example">Usar exemplo</button>
+          </div>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </form>
+
+        <div class="tool-result" id="result" aria-live="polite" hidden>
+          <div class="result-head">
+            <h3>Resultado</h3>
+            <span id="result-count" class="muted"></span>
+          </div>
+
+          <div class="result-block">
+            <div class="result-label">Mensagem convertida</div>
+            <div id="converted" class="converted"></div>
+            <button class="btn btn-small btn-ghost" type="button" id="copy">Copiar mensagem</button>
+          </div>
+
+          <div class="result-block" id="changes-block" hidden>
+            <div class="result-label">Links trocados</div>
+            <ul id="changes" class="link-list"></ul>
+          </div>
+
+          <div class="result-block" id="failed-block" hidden>
+            <div class="result-label">Links não convertidos</div>
+            <ul id="failed" class="link-list"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="espelhamento" class="container section">
+      <h2>Espelhamento de grupos</h2>
+      <p class="section-lead">
+        Simule o que acontece quando uma oferta chega de um grupo que você monitora: o @ e o site de quem postou saem, os links viram os seus, e a oferta só é enviada se todos os links de loja forem convertidos.
+      </p>
+
+      <div class="tool">
+        <form id="mirror-form" class="tool-form" novalidate>
+          <label class="field">
+            <span>Mensagem que chegou no grupo de origem</span>
+            <textarea id="mirror-message" rows="7" placeholder="Cole a oferta como ela veio do outro grupo..."></textarea>
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Seu @</span>
+              <input id="mirror-handle" type="text" autocomplete="off" value="@viniachados">
+            </label>
+            <label class="field">
+              <span>@ de quem postou</span>
+              <select id="mirror-handle-mode">
+                <option value="replace">Trocar pelo meu</option>
+                <option value="remove">Só remover</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Seu site (opcional)</span>
+              <input id="mirror-site" type="url" autocomplete="off" placeholder="https://...">
+            </label>
+            <label class="field">
+              <span>Site de quem postou</span>
+              <select id="mirror-site-mode">
+                <option value="remove">Só remover</option>
+                <option value="replace">Trocar pelo meu</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="field checks">
+            <legend>Lojas que podem ser espelhadas</legend>
+            <label><input type="checkbox" name="store" value="amazon" checked> Amazon</label>
+            <label><input type="checkbox" name="store" value="shopee" checked> Shopee</label>
+            <label><input type="checkbox" name="store" value="mercadolivre" checked> Mercado Livre</label>
+            <label class="check-wide"><input type="checkbox" id="mirror-only-store" checked> Ignorar mensagens sem link dessas lojas</label>
+          </fieldset>
+
+          <label class="field">
+            <span>Rodapé (opcional)</span>
+            <input id="mirror-footer" type="text" autocomplete="off" placeholder="Ex.: Entre no grupo Vini Achados">
+          </label>
+
+          <div class="form-actions">
+            <button class="btn" type="submit">Simular espelhamento</button>
+            <button class="btn btn-ghost" type="button" id="mirror-example">Usar exemplo</button>
+          </div>
+          <p class="form-error" id="mirror-error" role="alert" hidden></p>
+        </form>
+
+        <div class="tool-result" id="mirror-result" aria-live="polite" hidden>
+          <div class="result-head">
+            <h3>Resultado</h3>
+            <span id="mirror-verdict" class="verdict"></span>
+          </div>
+          <div class="result-block" id="mirror-out-block">
+            <div class="result-label">Mensagem que vai para o seu grupo</div>
+            <div id="mirror-out" class="converted"></div>
+          </div>
+          <div class="result-block" id="mirror-reason-block" hidden>
+            <div class="result-label">Por que não foi enviada</div>
+            <p id="mirror-reason" class="reason-text"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="whatsapp" class="container section">
+      <h2>Robô do WhatsApp</h2>
+      <p class="section-lead">
+        Conecte um número extra. Ele lê as ofertas dos grupos de origem e posta nos seus grupos com os seus links.
+      </p>
+      <p class="warning">
+        Use um número extra, nunca o seu principal. Este robô não é oficial do WhatsApp, e o número pode ser bloqueado.
+      </p>
+
+      <div class="tool">
+        <div class="tool-form" id="wa-panel">
+          <div class="result-head">
+            <h3>Conexão</h3>
+            <span id="wa-badge" class="verdict">Carregando...</span>
+          </div>
+          <div id="wa-qr-block" hidden>
+            <p class="muted">No celular do número extra: WhatsApp › Aparelhos conectados › Conectar um aparelho. Depois aponte para o código.</p>
+            <img id="wa-qr" class="qr" alt="Código QR para conectar o WhatsApp">
+          </div>
+          <p id="wa-info" class="muted"></p>
+          <div class="form-actions" id="wa-actions" hidden>
+            <button class="btn btn-small btn-ghost" type="button" id="wa-refresh">Atualizar grupos</button>
+            <button class="btn btn-small btn-ghost" type="button" id="wa-logout">Desconectar número</button>
+          </div>
+        </div>
+
+        <form class="tool-form rule-form" id="rule-form" novalidate hidden>
+          <h3 id="rule-form-title">Nova regra de espelhamento</h3>
+          <label class="field">
+            <span>Nome da regra</span>
+            <input id="rule-name" type="text" autocomplete="off" placeholder="Ex.: Impressão 3D">
+          </label>
+          <label class="field">
+            <span>Buscar grupo</span>
+            <input id="group-filter" type="search" autocomplete="off" placeholder="Ex.: ofertas, 3D, Vini Achados">
+          </label>
+
+          <section class="rule-section">
+            <h4>De onde vêm as ofertas?</h4>
+            <p class="muted">Escolha os grupos de origem. Só copia o que chegar nestes grupos.</p>
+            <div id="rule-sources" class="group-list"></div>
+          </section>
+
+          <section class="rule-section">
+            <h4>Para quais grupos vão?</h4>
+            <p class="muted">Aparecem os grupos do seu número. Num grupo só de admins, o robô precisa ser admin.</p>
+            <div id="rule-targets" class="group-list"></div>
+          </section>
+
+          <section class="rule-section">
+            <h4>Quais lojas trocar pelo seu link?</h4>
+            <p class="muted">Ligue ou desligue. Mensagens com link de loja desligada não vão para os seus grupos.</p>
+            <div class="store-toggles">
+              <label class="toggle"><input type="checkbox" id="rule-store-ml" checked> Mercado Livre</label>
+              <label class="toggle"><input type="checkbox" id="rule-store-shopee" checked> Shopee</label>
+              <label class="toggle"><input type="checkbox" id="rule-store-amazon" checked> Amazon</label>
+            </div>
+            <label class="toggle"><input type="checkbox" id="rule-only-stores" checked> Postar só ofertas dessas lojas</label>
+          </section>
+
+          <section class="rule-section">
+            <h4>Qual etiqueta de afiliado usar?</h4>
+            <p class="muted">Para saber, no relatório de cada loja, quanto vem deste espelhamento. Vazio = a etiqueta do grupo de destino.</p>
+            <div class="field-row">
+              <label class="field">
+                <span>Etiqueta da Amazon</span>
+                <input id="rule-amazon-tag" type="text" autocomplete="off" placeholder="Ex.: sua-tag-20">
+              </label>
+              <label class="field">
+                <span>Sub-ID da Shopee</span>
+                <input id="rule-shopee-sub" type="text" autocomplete="off" placeholder="Ex.: impressao3d">
+              </label>
+            </div>
+          </section>
+
+          <section class="rule-section">
+            <h4>Como a oferta sai?</h4>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="rule-image" value="off"><strong>Desligado, sai só o texto</strong><span>Sem foto, mesmo que o post original tenha.</span></label>
+              <label class="radio-card"><input type="radio" name="rule-image" value="original" checked><strong>Repetir o formato do post original</strong><span>Se o post veio com foto, sai com foto; se veio só com texto, sai só texto.</span></label>
+              <label class="radio-card"><input type="radio" name="rule-image" value="always"><strong>Sempre com foto</strong><span>Usa a foto do post ou, se ele não tiver, a foto da loja.</span></label>
+              <label class="radio-card"><input type="radio" name="rule-image" value="link"><strong>Sempre com link preview</strong><span>Sai só o seu link. O cartão grande com foto e título aparece sozinho no WhatsApp.</span></label>
+            </div>
+            <label class="toggle"><input type="checkbox" id="rule-no-repeat-photo"> Não repetir a mesma foto: a mesma foto, vinda de outro grupo de origem, não vai de novo para o mesmo grupo em 24 horas.</label>
+          </section>
+
+          <section class="rule-section">
+            <h4>Seu @ e seu site</h4>
+            <p class="muted">O @ e o site de quem postou nunca vão para os seus grupos: são trocados pelos seus ou removidos.</p>
+            <div class="field-row">
+              <label class="field">
+                <span>Seu @</span>
+                <input id="rule-handle" type="text" autocomplete="off" value="@viniachados">
+              </label>
+            </div>
+            <div class="seg-field">
+              <span class="seg-label">@ do Instagram</span>
+              <div class="segmented" data-seg="rule-handle-mode">
+                <button type="button" data-value="replace">Trocar pelo meu</button>
+                <button type="button" data-value="remove">Só remover</button>
+              </div>
+              <input type="hidden" id="rule-handle-mode" value="replace">
+              <p class="muted">Todo @ de outra pessoa na mensagem é apagado, sem colocar nada no lugar.</p>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span>Seu site (opcional)</span>
+                <input id="rule-site" type="text" autocomplete="off" placeholder="Ex.: seusite.com.br">
+              </label>
+            </div>
+            <div class="seg-field">
+              <span class="seg-label">Site</span>
+              <div class="segmented" data-seg="rule-site-mode">
+                <button type="button" data-value="replace">Trocar pelo meu</button>
+                <button type="button" data-value="remove">Só remover</button>
+              </div>
+              <input type="hidden" id="rule-site-mode" value="remove">
+              <p class="muted">Todo site de outra pessoa na mensagem é apagado. Links do Mercado Livre, Shopee e Amazon continuam virando o seu link de afiliado.</p>
+            </div>
+          </section>
+
+          <section class="rule-section">
+            <h4>Quando sai?</h4>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="rule-hours" value="all" checked><strong>O dia todo</strong></label>
+              <label class="radio-card"><input type="radio" name="rule-hours" value="range"><strong>Só em um horário</strong></label>
+            </div>
+            <div class="field-row" id="rule-range" hidden>
+              <label class="field">
+                <span>Postar a partir de</span>
+                <input id="rule-start" type="time" value="08:00">
+              </label>
+              <label class="field">
+                <span>Até</span>
+                <input id="rule-end" type="time" value="22:00">
+              </label>
+            </div>
+          </section>
+
+          <section class="rule-section">
+            <h4>Como a oferta sai no grupo?</h4>
+            <p class="muted">Igual à origem, ou remontada num modelo seu.</p>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="rule-text-mode" value="edit" checked><strong>Igual à origem</strong><span>Como hoje: só troca o link pelo seu.</span></label>
+              <label class="radio-card"><input type="radio" name="rule-text-mode" value="template"><strong>No meu modelo</strong><span>Remonta a oferta num modelo seu.</span></label>
+            </div>
+            <div id="rule-template-block" hidden>
+              <div class="template-library" id="template-library"></div>
+              <div class="template-save">
+                <input id="template-name" type="text" autocomplete="off" placeholder="Nome do modelo (para salvar)">
+                <div class="form-actions">
+                  <button class="btn btn-small" type="button" id="template-save">Salvar como modelo</button>
+                  <button class="btn btn-small btn-ghost" type="button" id="template-new">+ Monte o seu</button>
+                </div>
+                <p class="form-error" id="template-error" role="alert" hidden></p>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-small btn-ghost" type="button" data-field="titulo">Título</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="preco">Preço</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="preco_antigo">Preço antigo</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="cupom">Cupom</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="loja">Loja</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="link">Meu link</button>
+                <button class="btn btn-small btn-ghost" type="button" data-field="links">Todos os meus links</button>
+              </div>
+              <select id="rule-opening" aria-label="Frases de abertura">
+                <option value="">Adicionar frase de abertura...</option>
+                <option value="🔥 OFERTA IMPERDÍVEL!">🔥 OFERTA IMPERDÍVEL!</option>
+                <option value="🚨 Achado do dia 🚨">🚨 Achado do dia 🚨</option>
+                <option value="💥 Preço caiu, corre!">💥 Preço caiu, corre!</option>
+                <option value="⚡ Oferta relâmpago">⚡ Oferta relâmpago</option>
+                <option value="✅ Vale a pena conferir">✅ Vale a pena conferir</option>
+                <option value="👀 Olha que achado">👀 Olha que achado</option>
+                <option value="🛒 Garantir antes que acabe">🛒 Garantir antes que acabe</option>
+                <option value="📉 Menor preço do momento">📉 Menor preço do momento</option>
+              </select>
+              <textarea id="rule-template" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
+              <label class="toggle"><input type="checkbox" id="rule-random-opener" checked> Sortear uma frase de abertura para cada post (60 opções, não repete logo)</label>
+            </div>
+          </section>
+
+          <details class="rule-section filters" id="rule-filters">
+            <summary>Extras (opcional)</summary>
+            <label class="field">
+              <span>Rodapé em toda oferta</span>
+              <input id="rule-footer" type="text" autocomplete="off" placeholder="Ex.: Compre com o nosso link!">
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Palavras e frases bloqueadas (uma por linha)</span>
+                <textarea id="rule-block" rows="3" placeholder="capinha&#10;sorteio"></textarea>
+              </label>
+              <label class="field">
+                <span>Só enviar se tiver alguma destas (vazio = tudo)</span>
+                <textarea id="rule-require" rows="3" placeholder="3d&#10;filamento&#10;impressora"></textarea>
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span>Preço mínimo (R$)</span>
+                <input id="rule-min" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 20">
+              </label>
+              <label class="field">
+                <span>Preço máximo (R$)</span>
+                <input id="rule-max" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 300">
+              </label>
+              <label class="field">
+                <span>Desconto mínimo (%)</span>
+                <input id="rule-min-discount" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 30">
+              </label>
+            </div>
+            <label class="field">
+              <span>Apagar linhas que contenham (uma por linha)</span>
+              <textarea id="rule-drop" rows="3" placeholder="entre no grupo&#10;link do grupo&#10;chama no privado"></textarea>
+            </label>
+            <div class="field">
+              <span>Trocar ou apagar um texto. Para apagar, deixe "Trocar por" vazio.</span>
+              <div id="rule-replacements"></div>
+              <div class="form-actions">
+                <button class="btn btn-small btn-ghost" type="button" id="rule-add-replacement">+ Outra troca</button>
+              </div>
+            </div>
+          </details>
+
+          <p class="rule-summary" id="rule-summary"></p>
+          <div class="form-actions">
+            <button class="btn" type="submit" id="rule-submit">Salvar regra</button>
+            <button class="btn btn-ghost" type="button" id="rule-cancel" hidden>Cancelar edição</button>
+          </div>
+          <p class="form-error" id="rule-error" role="alert" hidden></p>
+        </form>
+
+        <form class="tool-form" id="limits-form" novalidate hidden>
+          <h3>Limites contra bloqueio</h3>
+          <p class="muted">Acima destes números o robô pula o post e registra o motivo. Valem para o clonador e para a Vitrine.</p>
+          <div class="field-row">
+            <label class="field">
+              <span>Posts por hora em cada grupo</span>
+              <input id="lim-group-hour" type="number" min="1" max="1000" step="1">
+            </label>
+            <label class="field">
+              <span>Posts por dia em cada grupo</span>
+              <input id="lim-group-day" type="number" min="1" max="1000" step="1">
+            </label>
+            <label class="field">
+              <span>Posts por hora no total</span>
+              <input id="lim-total-hour" type="number" min="1" max="1000" step="1">
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-small" type="submit">Salvar limites</button>
+          </div>
+          <p class="form-error" id="limits-error" role="alert" hidden></p>
+          <ul id="limits-usage" class="link-list"></ul>
+        </form>
+
+        <form class="tool-form" id="tags-form" novalidate hidden>
+          <h3>Etiquetas por grupo</h3>
+          <p class="muted">Cada grupo pode ter a sua tag da Amazon e o seu sub-ID da Shopee, para o relatório mostrar de onde veio cada venda. Vazio = usa as etiquetas gerais.</p>
+          <div id="tags-rows"></div>
+          <div class="form-actions">
+            <button class="btn btn-small" type="submit">Salvar etiquetas</button>
+          </div>
+          <p class="form-error" id="tags-error" role="alert" hidden></p>
+        </form>
+
+        <div class="tool-result" id="rules-block" hidden>
+          <div class="result-label">Regras ativas</div>
+          <ul id="rules" class="link-list"></ul>
+        </div>
+
+        <div class="tool-result" id="activity-block" hidden>
+          <div class="result-label">Últimas atividades</div>
+          <p id="today-summary" class="mode-note"></p>
+          <ul id="activity" class="link-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="vitrine" class="container section">
+      <h2>Vitrine</h2>
+      <p class="section-lead">
+        Produtos que você adicionou pela extensão do Chrome. Marque, ajuste o texto e envie para os seus grupos.
+      </p>
+      <p class="mode-note" id="ext-status">Extensão: verificando...</p>
+
+      <div class="tool">
+        <div class="tool-result" id="vitrine-empty">
+          <p class="muted">Nenhum produto ainda. Abra um produto no Mercado Livre e clique no ícone do AchoFiliado › Adicionar à Vitrine.</p>
+        </div>
+        <ul id="products" class="product-list"></ul>
+
+        <form class="tool-form" id="send-form" novalidate hidden>
+          <h3>Enviar <span id="send-count">0 produtos</span></h3>
+          <fieldset class="field checks">
+            <legend>Para estes grupos</legend>
+            <div id="send-targets" class="group-list"></div>
+          </fieldset>
+          <div class="form-actions">
+            <button class="btn" type="submit">Enviar agora</button>
+          </div>
+          <p class="mode-note">Os envios entram na fila do robô, com pausa entre cada um.</p>
+          <p class="form-error" id="send-error" role="alert" hidden></p>
+          <p class="mode-note" id="send-ok" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="como-funciona" class="container section">
+      <h2>Como funciona</h2>
+      <div class="grid-3">
+        <article class="card">
+          <span class="step">1</span>
+          <h3>Cole a mensagem</h3>
+          <p>Qualquer texto com links de produto. Os links são encontrados mesmo com pontuação ao lado.</p>
+        </article>
+        <article class="card">
+          <span class="step">2</span>
+          <h3>Trocamos cada link</h3>
+          <p>Cada loja é identificada pelo domínio e convertida pela sua conta de afiliado.</p>
+        </article>
+        <article class="card">
+          <span class="step">3</span>
+          <h3>Copie e poste</h3>
+          <p>O texto volta igual ao original, só com os seus links no lugar dos antigos.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>AchoFiliado · versão de testes</span>
+      <span class="muted" id="footer-mode">Sem credenciais no navegador</span>
+    </div>
+  </footer>
+</body>
+</html>

@@ -14,12 +14,12 @@ const RULES = [
   },
   {
     store: 'shopee',
-    test: (h) => /(^|\.)shopee\.com\.br$/.test(h) || h === 'shp.ee',
+    test: (h) => /(^|\.)shopee\.com\.br$/.test(h) || h === 'shp.ee' || h === 'shope.ee',
   },
   {
     store: 'mercadolivre',
     test: (h) =>
-      /(^|\.)mercadolivre\.com\.br$/.test(h) ||
+      /(^|\.)mercadolivre\.com(\.br)?$/.test(h) || // mercadolivre.com/sec/... é o link curto de afiliado
       /(^|\.)mercadolibre\.com(\.br)?$/.test(h) ||
       h === 'meli.la',
   },

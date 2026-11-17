@@ -11,7 +11,7 @@ const STORE_LABEL = {
 const STORE_PENDING = {
   amazon: 'Tag não configurada',
   shopee: 'Conta não conectada',
-  mercadolivre: 'Sessão não conectada',
+  mercadolivre: 'Extensão do Chrome desconectada',
 };
 
 const EXAMPLE = [
@@ -34,6 +34,8 @@ const $ = (id) => document.getElementById(id);
 /* ---------- Backend: usa a API quando o servidor está rodando ---------- */
 
 const backend = { available: false, stores: { amazon: true, shopee: false, mercadolivre: false } };
+// Conversões esperam a detecção do servidor terminar, para não cair no modo demonstração por engano.
+let backendReady = Promise.resolve();
 
 async function api(path, body) {
   const res = await fetch(path, {
@@ -49,7 +51,9 @@ async function api(path, body) {
 function renderStoreStatus() {
   for (const el of document.querySelectorAll('[data-store-status]')) {
     const store = el.dataset.storeStatus;
-    const ok = backend.stores[store];
+    const ok = store === 'amazon'
+      ? backend.stores.amazon || Boolean($('amazon-tag').value.trim())
+      : backend.stores[store];
     el.textContent = ok ? 'Conectada' : STORE_PENDING[store];
     el.className = `status ${ok ? 'status-ok' : 'status-pending'}`;
   }
@@ -151,6 +155,7 @@ form.addEventListener('submit', async (event) => {
   submit.disabled = true;
   submit.textContent = 'Convertendo...';
   try {
+    await backendReady;
     const amazonTag = tagEl.value.trim();
     const result = backend.available
       ? await api('/api/convert', { text, amazonTag })
@@ -216,8 +221,9 @@ mirrorForm.addEventListener('submit', async (event) => {
 
   const rule = readRule();
   try {
+    await backendReady;
     const result = backend.available
-      ? await api('/api/mirror/preview', { text, rule })
+      ? await api('/api/mirror/preview', { text, rule, amazonTag: tagEl.value.trim() })
       : await processMessage(
           { sourceId: 'preview', text },
           { ...rule, sources: ['preview'], targets: ['preview'] },
@@ -243,4 +249,6 @@ $('mirror-example').addEventListener('click', () => {
   showError($('mirror-error'), '');
 });
 
-detectBackend();
+$('amazon-tag').addEventListener('input', renderStoreStatus);
+
+backendReady = detectBackend();

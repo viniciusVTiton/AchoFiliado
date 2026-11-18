@@ -275,6 +275,7 @@ export function initEspelho({ roboCall }) {
           ),
           el('p', { className: 'muted', textContent: `De: ${r.sources.map(groupName).join(', ')}` }),
           el('p', { className: 'muted', textContent: `Para: ${r.targets.map(groupName).join(', ')}` }),
+          el('p', { className: 'muted small', textContent: `Não repete o mesmo produto no mesmo grupo por ${r.repeatHours ?? 24} hora(s)` }),
           filters ? el('p', { className: 'muted small', textContent: filters }) : null,
           el('div', { className: 'btn-row' },
             btn('Editar', () => startEdit(r)),
@@ -443,6 +444,7 @@ export function initEspelho({ roboCall }) {
     setRadio('r-textmode', r.textMode ?? 'edit');
     $('r-tpl').value = r.template ?? '';
     $('r-random').checked = r.randomOpener !== false;
+    $('r-repeat').value = String(r.repeatHours ?? 24);
     $('r-extras').open = Boolean(filterSummary(r));
     syncVisibility();
     updateSummary();
@@ -488,6 +490,7 @@ export function initEspelho({ roboCall }) {
       textMode: radio('r-textmode'),
       template: $('r-tpl').value.trim(),
       randomOpener: $('r-random').checked,
+      repeatHours: Number($('r-repeat').value) || 24,
     };
     const problem = !rule.sources.length
       ? 'Escolha pelo menos um grupo de origem.'

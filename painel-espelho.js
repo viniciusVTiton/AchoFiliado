@@ -47,6 +47,7 @@ const FIELD_SAMPLE = {
   titulo_maiusculo: 'FILAMENTO PLA 1KG',
   cupom_desconto: '10%',
   frase_ia: 'Olha essa impressora, como tá barata!',
+  faixas_cupom: 'R$20 OFF acima de R$189\nR$30 OFF acima de R$279',
 };
 
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

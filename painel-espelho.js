@@ -27,6 +27,24 @@ const OPENINGS = [
 
 const ACTIVITY = { received: 'Recebida de', sent: 'Enviada para', skipped: 'Não enviada', error: 'Erro', info: 'Aviso' };
 
+const EMOJIS = [
+  '🔥', '🚨', '💥', '⚡', '✅', '❌', '👉', '👀', '🛒', '📉', '📦', '🎟️', '💰', '💳', '🎁', '⭐',
+  '🏷️', '🚚', '📲', '💬', '✨', '🟢', '🔴', '🟡', '🔵', '⏰', '📍', '🎯', '🧾', '🛍️', '💸', '🤑',
+  '😍', '🙌', '👏', '😱', '🥇', '🏆', '📢', '✔️', '➡️', '🔗', '📌', '💎', '🖨️', '🧵', '🔧', '🎉',
+  '🆕', '🔝', '❗', '⚠️', '🤩', '😎', '🚀', '💡', '🧡', '🖤', '💚', '💙', '📣', '🔔', '⏳', '🎀',
+];
+
+// Valores de exemplo para a prévia (o robô troca pelos valores reais de cada oferta).
+const FIELD_SAMPLE = {
+  titulo: 'Filamento PLA 1kg',
+  preco: 'R$ 79',
+  preco_antigo: 'R$ 129',
+  cupom: 'MEUDESCONTO',
+  loja: 'Mercado Livre',
+  link: 'https://meli.la/exemplo',
+  links: 'https://meli.la/exemplo',
+};
+
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function initEspelho({ roboCall }) {
@@ -83,7 +101,51 @@ export function initEspelho({ roboCall }) {
     box.value = box.value.slice(0, start) + text + box.value.slice(end);
     box.focus();
     box.setSelectionRange(start + text.length, start + text.length);
+    box.dispatchEvent(new Event('input'));
   }
+
+  // Envolve o trecho selecionado com a marca do WhatsApp (*negrito*, _itálico_...).
+  // Sem seleção, deixa a marca vazia e o cursor entre as duas.
+  function wrapText(id, open, close = open) {
+    const box = $(id);
+    const start = box.selectionStart ?? box.value.length;
+    const end = box.selectionEnd ?? start;
+    const selected = box.value.slice(start, end);
+    box.value = box.value.slice(0, start) + open + selected + close + box.value.slice(end);
+    box.focus();
+    const from = start + open.length;
+    box.setSelectionRange(from, from + selected.length);
+    box.dispatchEvent(new Event('input'));
+  }
+
+  function buildTools(containerId, targetId) {
+    const emojiPanel = el('div', { className: 'emoji-panel', hidden: true },
+      ...EMOJIS.map((e) => el('button', { type: 'button', className: 'emoji-btn', textContent: e, onclick: () => insertAt(targetId, e) })),
+    );
+    const mark = (label, title, open, close, extra) =>
+      el('button', { type: 'button', className: `tb-btn ${extra}`, title, textContent: label, onclick: () => wrapText(targetId, open, close) });
+    $(containerId).replaceChildren(
+      mark('N', 'Negrito: *texto*', '*', '*', 'tb-b'),
+      mark('I', 'Itálico: _texto_', '_', '_', 'tb-i'),
+      mark('S', 'Tachado: ~texto~', '~', '~', 'tb-s'),
+      mark('</>', 'Monoespaçado: ```texto```', '```', '```', 'tb-m'),
+      el('button', { type: 'button', className: 'tb-btn', title: 'Inserir emoji', textContent: '😀 Emojis', onclick: () => { emojiPanel.hidden = !emojiPanel.hidden; } }),
+      emojiPanel,
+    );
+  }
+
+  // Prévia parecida com a do WhatsApp: converte as marcas e mostra os campos com valores de exemplo.
+  function renderPreview(text) {
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = esc(text)
+      .replace(/```([\s\S]+?)```/g, '<code>$1</code>')
+      .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+      .replace(/_([^_\n]+)_/g, '<i>$1</i>')
+      .replace(/~([^~\n]+)~/g, '<s>$1</s>')
+      .replace(/\{(\w+)\}/g, (m, f) => (FIELD_SAMPLE[f] ? `<span class="fld">${esc(FIELD_SAMPLE[f])}</span>` : m));
+    $('tpl-preview').innerHTML = html || '<span class="muted">Escreva o modelo para ver a prévia.</span>';
+  }
+  $('tpl-text').addEventListener('input', () => renderPreview($('tpl-text').value));
 
   function setSeg(id, value) {
     $(id).value = value;
@@ -452,14 +514,16 @@ export function initEspelho({ roboCall }) {
         el('div', { className: `card tpl-card${t.builtin ? ' builtin' : ''}` },
           el('div', { className: 'tpl-head' }, el('h3', { textContent: t.name }), el('small', { className: 'muted', textContent: t.builtin ? 'Pronto' : 'Seu' })),
           el('pre', { className: 'msg', textContent: t.text }),
-          t.builtin
-            ? null
-            : el('div', { className: 'btn-row' },
-                btn('Editar', () => editTemplate(t)),
-                btn('Excluir', () => {
+          el('div', { className: 'btn-row' },
+            t.builtin
+              ? btn('Copiar e editar', () => copyTemplate(t))
+              : btn('Editar', () => editTemplate(t)),
+            t.builtin
+              ? null
+              : btn('Excluir', () => {
                   if (confirm(`Apagar o modelo "${t.name}"?`)) run('tpl-msg', () => deleteTemplate(t));
                 }, 'btn-danger'),
-              ),
+          ),
         ),
       ),
     );
@@ -477,6 +541,7 @@ export function initEspelho({ roboCall }) {
     $('tpl-name').value = '';
     $('tpl-text').value = '';
     $('tpl-cancel').hidden = true;
+    renderPreview('');
   }
 
   function editTemplate(t) {
@@ -485,6 +550,18 @@ export function initEspelho({ roboCall }) {
     $('tpl-name').value = t.name;
     $('tpl-text').value = t.text;
     $('tpl-cancel').hidden = false;
+    renderPreview(t.text);
+    $('tpl-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Modelos prontos não são alterados: a edição vira um modelo novo, seu.
+  function copyTemplate(t) {
+    editingTpl = null;
+    $('tpl-title').textContent = `Cópia de "${t.name}"`;
+    $('tpl-name').value = `${t.name} (meu)`;
+    $('tpl-text').value = t.text;
+    $('tpl-cancel').hidden = false;
+    renderPreview(t.text);
     $('tpl-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -607,6 +684,9 @@ export function initEspelho({ roboCall }) {
     if (['espelhamento', 'grupos', 'modelos', 'relatorio', 'config'].includes(view)) refresh();
   }
 
+  buildTools('tpl-tools', 'tpl-text');
+  buildTools('r-tools', 'r-tpl');
+  renderPreview('');
   resetForm();
   return { refresh, onView };
 }

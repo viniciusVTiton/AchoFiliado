@@ -153,6 +153,21 @@
     .feed .meta { display: block; color: var(--muted); font-size: 0.82rem; }
     .meta { color: var(--muted); font-size: 0.82rem; }
 
+    .tb { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; align-items: center; }
+    .tb-btn { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-weight: 600; font-size: 0.88rem; min-width: 36px; }
+    .tb-btn:hover { border-color: var(--accent); }
+    .tb-b { font-weight: 800; }
+    .tb-i { font-style: italic; font-family: Georgia, serif; }
+    .tb-s { text-decoration: line-through; }
+    .tb-m { font-family: ui-monospace, Consolas, monospace; font-size: 0.8rem; }
+    .emoji-panel { flex-basis: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; max-height: 160px; overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+    .emoji-btn { background: transparent; border: 0; font-size: 1.25rem; cursor: pointer; border-radius: 6px; padding: 4px; }
+    .emoji-btn:hover { background: var(--surface-2); }
+    .prev-label { display: block; font-size: 0.85rem; color: var(--muted); margin: 12px 0 6px; }
+    .wa-preview { white-space: pre-wrap; background: #0b141a; color: #e9edef; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 0.92rem; line-height: 1.5; min-height: 60px; }
+    .wa-preview code { font-family: ui-monospace, Consolas, monospace; background: rgba(255, 255, 255, 0.08); padding: 1px 4px; border-radius: 4px; }
+    .wa-preview .fld { background: rgba(242, 101, 34, 0.2); color: #fdba74; border-radius: 4px; padding: 0 3px; }
+
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .side { position: static; height: auto; flex-direction: row; overflow-x: auto; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
@@ -364,6 +379,7 @@
                 <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="links">Todos os meus links</button>
               </div>
               <select id="r-opening" aria-label="Frases de abertura" style="margin-bottom:10px"></select>
+              <div id="r-tools" class="tb"></div>
               <textarea id="r-tpl" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
               <label class="toggle"><input type="checkbox" id="r-random" checked> Sortear uma frase de abertura para cada post</label>
               <div class="field-row" style="align-items:end">
@@ -430,7 +446,10 @@
             <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="link">Meu link</button>
             <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="links">Todos os meus links</button>
           </div>
+          <div id="tpl-tools" class="tb"></div>
           <textarea id="tpl-text" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
+          <span class="prev-label">Prévia no WhatsApp (com valores de exemplo)</span>
+          <div id="tpl-preview" class="wa-preview"></div>
           <div class="btn-row">
             <button class="btn btn-primary" type="submit">Salvar modelo</button>
             <button class="btn btn-ghost" type="button" id="tpl-cancel" hidden>Cancelar edição</button>

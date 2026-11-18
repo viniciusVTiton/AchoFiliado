@@ -142,6 +142,7 @@
       <button class="nav-item" data-view="espelhamento"><span class="ico">⇄</span>Espelhamento</button>
       <button class="nav-item" data-view="modelos"><span class="ico">✦</span>Modelos</button>
       <button class="nav-item" data-view="grupos"><span class="ico">◎</span>Grupos</button>
+      <button class="nav-item" data-view="conexoes"><span class="ico">⇆</span>Conexões</button>
       <div class="group-title">Acompanhar</div>
       <button class="nav-item" data-view="relatorio"><span class="ico">▤</span>Relatório</button>
       <div class="group-title">Conta</div>
@@ -216,6 +217,71 @@
       </section>
 
       <!-- Configurações -->
+      <!-- Conexões -->
+      <section data-section="conexoes" hidden>
+        <div class="topbar">
+          <div><h1>Conexões</h1><p>Ligue o robô ao seu computador e conecte as contas.</p></div>
+          <span class="pill" id="robo-pill">Robô desconectado</span>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <h3>1. Robô no seu computador</h3>
+          <p class="muted" style="margin:6px 0 12px">Abra o AchoFiliado no computador onde o robô roda. O token de pareamento aparece no terminal e no arquivo <code>data/pair-token.txt</code>.</p>
+          <div class="grid-2">
+            <label class="field"><span>Endereço do robô</span>
+              <input type="text" id="robo-url" value="http://127.0.0.1:3000" autocomplete="off"></label>
+            <label class="field"><span>Token de pareamento</span>
+              <input type="password" id="robo-token" autocomplete="off" placeholder="cole o token aqui"></label>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+            <button class="btn btn-primary" type="button" id="robo-conectar">Conectar ao robô</button>
+            <button class="btn btn-ghost" type="button" id="robo-esquecer">Esquecer token</button>
+            <small class="muted" id="robo-msg"></small>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>WhatsApp</h3>
+            <p class="muted" id="wa-status">—</p>
+            <div id="wa-qr" style="margin:12px 0"></div>
+            <p class="muted" style="font-size:13px">Escaneie o QR code com o número extra, em Aparelhos conectados. O QR some quando o número conecta.</p>
+            <button class="btn btn-ghost" type="button" id="wa-sair" hidden>Desconectar número</button>
+          </div>
+
+          <div class="card">
+            <h3>Mercado Livre</h3>
+            <p class="muted" id="ml-status">—</p>
+            <p class="muted" style="font-size:13px">Os links são gerados pela extensão do Chrome, instalada no mesmo computador.</p>
+            <label class="field"><span>Etiqueta (ML_TAG)</span>
+              <input type="text" id="ml-tag" autocomplete="off" placeholder="ex.: bbaedhfcg25196"></label>
+            <button class="btn btn-primary" type="button" data-save="ml" style="margin-top:12px">Salvar etiqueta</button>
+          </div>
+
+          <div class="card">
+            <h3>Shopee</h3>
+            <p class="muted" id="sp-status">—</p>
+            <label class="field"><span>App ID</span>
+              <input type="text" id="sp-app" autocomplete="off"></label>
+            <label class="field" style="margin-top:10px"><span>Secret</span>
+              <input type="password" id="sp-secret" autocomplete="off" placeholder="deixe em branco para manter"></label>
+            <label class="field" style="margin-top:10px"><span>Sub ID</span>
+              <input type="text" id="sp-sub" autocomplete="off"></label>
+            <button class="btn btn-primary" type="button" data-save="shopee" style="margin-top:12px">Salvar Shopee</button>
+            <p class="muted" id="sp-restart" style="font-size:13px" hidden>Reinicie o robô para a Shopee passar a valer.</p>
+          </div>
+
+          <div class="card">
+            <h3>Amazon</h3>
+            <p class="muted" id="az-status">—</p>
+            <label class="field"><span>Etiqueta (tag)</span>
+              <input type="text" id="az-tag" autocomplete="off" placeholder="ex.: seuchave-20"></label>
+            <button class="btn btn-primary" type="button" data-save="amazon" style="margin-top:12px">Salvar Amazon</button>
+          </div>
+        </div>
+        <p class="muted" id="conx-erro" style="color:#f87171" hidden></p>
+      </section>
+
       <section data-section="config" hidden>
         <div class="topbar">
           <div><h1>Configurações</h1><p>Dados da sua conta e do seu plano.</p></div>
@@ -354,6 +420,131 @@
       card.append(title, pre);
       return card;
     }));
+
+    /* ---------- Conexões com o robô local ---------- */
+    const ROBO_KEY = 'achofiliado-robo';
+    const roboSection = () => document.querySelector('[data-section="conexoes"]');
+    let roboOnline = false;
+
+    function readRobo() {
+      try { return JSON.parse(localStorage.getItem(ROBO_KEY)) || {}; } catch { return {}; }
+    }
+    function saveRobo(data) {
+      try { localStorage.setItem(ROBO_KEY, JSON.stringify(data)); } catch { /* sem armazenamento: segue sem lembrar */ }
+    }
+
+    async function roboCall(path, { method = 'GET', body } = {}) {
+      const { url, token } = readRobo();
+      if (!url || !token) throw new Error('Conecte o robô primeiro.');
+      const res = await fetch(url.replace(/\/+$/, '') + path, {
+        method,
+        headers: { Authorization: 'Bearer ' + token, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error('Token não confere. Copie de novo do terminal do robô.');
+      if (!res.ok) throw new Error(data.error || 'Erro ao falar com o robô.');
+      return data;
+    }
+
+    function setRoboPill(text, on) {
+      roboOnline = on;
+      $('robo-pill').textContent = text;
+      $('robo-pill').style.background = on ? 'rgba(74,222,128,.15)' : '';
+      $('robo-pill').style.color = on ? '#4ade80' : '';
+    }
+
+    function renderConnections(c) {
+      const wa = c.whatsapp || {};
+      const waText = { disabled: 'Desligado no robô', starting: 'Iniciando…', qr: 'Aguardando leitura do QR code', connecting: 'Conectando…', open: 'Conectado', reconnecting: 'Reconectando…', error: 'Erro: ' + (wa.error || 'verifique o robô') }[wa.status] || wa.status || '—';
+      $('wa-status').textContent = waText;
+      $('wa-qr').replaceChildren();
+      if (wa.status === 'qr' && wa.qr) {
+        const img = document.createElement('img');
+        img.src = wa.qr;
+        img.alt = 'QR code do WhatsApp';
+        img.width = 240; img.height = 240;
+        $('wa-qr').append(img);
+      }
+      $('wa-sair').hidden = !(wa.status === 'open');
+
+      const ml = c.mercadolivre || {};
+      $('ml-status').textContent = ml.online ? 'Extensão conectada' : 'Extensão não conectada';
+      if (document.activeElement !== $('ml-tag')) $('ml-tag').value = ml.tag || '';
+
+      const sp = c.shopee || {};
+      $('sp-status').textContent = sp.configured ? (sp.active ? 'Configurada e ativa' : 'Configurada, reinicie o robô') : 'Não configurada';
+      if (document.activeElement !== $('sp-app')) $('sp-app').value = sp.appId || '';
+      if (document.activeElement !== $('sp-sub')) $('sp-sub').value = sp.subId || '';
+
+      const az = c.amazon || {};
+      $('az-status').textContent = az.tag ? 'Etiqueta ativa' : 'Sem etiqueta (usa a da página)';
+      if (document.activeElement !== $('az-tag')) $('az-tag').value = az.tag || '';
+    }
+
+    async function loadConnections({ quiet = false } = {}) {
+      try {
+        const c = await roboCall('/api/connections');
+        setRoboPill('Robô conectado', true);
+        $('robo-msg').textContent = '';
+        $('conx-erro').hidden = true;
+        renderConnections(c);
+      } catch (err) {
+        setRoboPill('Robô desconectado', false);
+        if (!quiet) $('robo-msg').textContent = err.message;
+      }
+    }
+
+    $('robo-conectar').addEventListener('click', async () => {
+      saveRobo({ url: $('robo-url').value.trim(), token: $('robo-token').value.trim() });
+      $('robo-msg').textContent = 'Conectando…';
+      await loadConnections();
+    });
+
+    $('robo-esquecer').addEventListener('click', () => {
+      saveRobo({});
+      $('robo-token').value = '';
+      setRoboPill('Robô desconectado', false);
+      $('robo-msg').textContent = 'Token esquecido neste navegador.';
+    });
+
+    document.querySelectorAll('[data-save]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const kind = button.dataset.save;
+        const body = {};
+        if (kind === 'ml') body.mlTag = $('ml-tag').value.trim();
+        if (kind === 'amazon') body.amazonTag = $('az-tag').value.trim();
+        if (kind === 'shopee') {
+          body.shopeeAppId = $('sp-app').value.trim();
+          body.shopeeSubId = $('sp-sub').value.trim();
+          if ($('sp-secret').value.trim()) body.shopeeSecret = $('sp-secret').value.trim();
+        }
+        try {
+          const res = await roboCall('/api/connections', { method: 'POST', body });
+          $('sp-secret').value = '';
+          $('sp-restart').hidden = !res.needsRestart;
+          $('conx-erro').hidden = true;
+          renderConnections(res);
+        } catch (err) {
+          $('conx-erro').textContent = err.message;
+          $('conx-erro').hidden = false;
+        }
+      });
+    });
+
+    $('wa-sair').addEventListener('click', async () => {
+      try { await roboCall('/api/whatsapp/logout', { method: 'POST', body: {} }); loadConnections(); }
+      catch (err) { $('conx-erro').textContent = err.message; $('conx-erro').hidden = false; }
+    });
+
+    // Atualiza o status enquanto a página Conexões estiver aberta (QR e conexão mudam sozinhos).
+    setInterval(() => { if (roboSection() && !roboSection().hidden) loadConnections({ quiet: true }); }, 4000);
+
+    (function restoreRobo() {
+      const saved = readRobo();
+      if (saved.url) $('robo-url').value = saved.url;
+      if (saved.token) { $('robo-token').value = saved.token; loadConnections({ quiet: true }); }
+    })();
 
     onAuthStateChanged(auth, (user) => showSession(user));
     setMode('entrar');

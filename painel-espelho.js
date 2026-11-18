@@ -326,6 +326,7 @@ export function initEspelho({ roboCall }) {
 
   function syncVisibility() {
     $('r-tpl-block').hidden = radio('r-textmode') !== 'template';
+    $('r-ai-block').hidden = radio('r-textmode') !== 'ai';
     $('r-range').hidden = radio('r-hours') !== 'range';
   }
   document.querySelectorAll('input[name="r-textmode"], input[name="r-hours"]').forEach((i) => i.addEventListener('change', syncVisibility));
@@ -447,6 +448,7 @@ export function initEspelho({ roboCall }) {
     $('r-tpl').value = r.template ?? '';
     $('r-random').checked = r.randomOpener !== false;
     $('r-repeat').value = String(r.repeatHours ?? 24);
+    $('r-nicho').value = r.nicho ?? '';
     $('r-extras').open = Boolean(filterSummary(r));
     syncVisibility();
     updateSummary();
@@ -493,6 +495,7 @@ export function initEspelho({ roboCall }) {
       template: $('r-tpl').value.trim(),
       randomOpener: $('r-random').checked,
       repeatHours: Number($('r-repeat').value) || 24,
+      nicho: $('r-nicho').value.trim(),
     };
     const problem = !rule.sources.length
       ? 'Escolha pelo menos um grupo de origem.'

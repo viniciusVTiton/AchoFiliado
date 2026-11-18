@@ -235,9 +235,38 @@
     </main>
   </div>
 
-  <script>
-    const SESSION_KEY = 'achofiliado-sessao';
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+    import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+    import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+    // Configuração do projeto. Em localhost usa o simulador local (sem conta Google).
+    // Para produção, troque pelos valores do seu projeto Firebase.
+    const firebaseConfig = {
+      apiKey: 'AIzaSyBypLedOtlbvHD2DOGBbI1dMqTkyRjoRd4',
+      authDomain: 'achofiliado.firebaseapp.com',
+      projectId: 'achofiliado',
+      storageBucket: 'achofiliado.firebasestorage.app',
+      messagingSenderId: '699261741160',
+      appId: '1:699261741160:web:811c2a358c8a7ff9cf33dd',
+    };
     const ADMIN_EMAIL = 'vini.titon@gmail.com';
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (local) {
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+      connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    }
+
+    const AUTH_ERRORS = {
+      'auth/email-already-in-use': 'Este e-mail já tem conta. Use Entrar.',
+      'auth/invalid-credential': 'E-mail ou senha incorretos.',
+      'auth/invalid-email': 'Informe um e-mail válido.',
+      'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+    };
 
     const TEMPLATES = [
       { name: 'Post padrão', text: '{titulo}\n\n❌ {preco_antigo}\n✅ {preco}\n\nCupom: {cupom}\n\n👉 {link}' },
@@ -248,18 +277,15 @@
     const $ = (id) => document.getElementById(id);
     let mode = 'entrar';
 
-    function readSession() {
-      try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
-    }
-
-    function showSession(session) {
-      $('auth').hidden = Boolean(session);
-      $('app').hidden = !session;
-      if (!session) return;
-      const admin = session.email.toLowerCase() === ADMIN_EMAIL;
-      $('side-name').textContent = session.name || session.email;
+    function showSession(user) {
+      $('auth').hidden = Boolean(user);
+      $('app').hidden = !user;
+      if (!user) return;
+      const email = user.email || '';
+      const admin = email.toLowerCase() === ADMIN_EMAIL;
+      $('side-name').textContent = user.displayName || email;
       $('side-role').textContent = admin ? 'Administrador' : 'Cliente';
-      $('cfg-email').textContent = session.email;
+      $('cfg-email').textContent = email;
       $('cfg-role').textContent = admin ? 'Administrador (acesso total)' : 'Cliente';
     }
 
@@ -277,23 +303,37 @@
 
     document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
-    $('auth-form').addEventListener('submit', (event) => {
+    $('auth-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const email = $('auth-email').value.trim();
       const pass = $('auth-pass').value;
       const name = $('auth-name').value.trim();
+      $('auth-error').textContent = '';
       if (!/^\S+@\S+\.\S+$/.test(email)) { $('auth-error').textContent = 'Informe um e-mail válido.'; return; }
       if (pass.length < 6) { $('auth-error').textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
       if (mode === 'criar' && !name) { $('auth-error').textContent = 'Informe o seu nome.'; return; }
-      const session = { email, name: name || email.split('@')[0] };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      showSession(session);
+      $('auth-submit').disabled = true;
+      try {
+        if (mode === 'criar') {
+          const cred = await createUserWithEmailAndPassword(auth, email, pass);
+          await updateProfile(cred.user, { displayName: name });
+          await setDoc(doc(db, 'usuarios', cred.user.uid), {
+            nome: name,
+            email,
+            acesso: email.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'cliente',
+            criadoEm: new Date().toISOString(),
+          });
+        } else {
+          await signInWithEmailAndPassword(auth, email, pass);
+        }
+      } catch (err) {
+        $('auth-error').textContent = AUTH_ERRORS[err.code] || 'Não foi possível entrar agora. Tente de novo.';
+      } finally {
+        $('auth-submit').disabled = false;
+      }
     });
 
-    $('logout').addEventListener('click', () => {
-      localStorage.removeItem(SESSION_KEY);
-      showSession(null);
-    });
+    $('logout').addEventListener('click', () => signOut(auth));
 
     document.querySelectorAll('[data-view]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -315,7 +355,7 @@
       return card;
     }));
 
-    showSession(readSession());
+    onAuthStateChanged(auth, (user) => showSession(user));
     setMode('entrar');
   </script>
 </body>

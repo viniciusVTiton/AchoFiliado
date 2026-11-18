@@ -93,6 +93,66 @@
 
     .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 
+    .muted { color: var(--muted); }
+    .small { font-size: 0.85rem; }
+    .warn-text { color: #fbbf24; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .btn-danger { background: transparent; color: #f87171; border-color: rgba(248, 113, 113, 0.35); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+    .form-msg { font-size: 0.9rem; margin: 10px 0; color: #4ade80; }
+    .form-msg.err { color: #f87171; }
+    .notice-box { padding: 12px 14px; border-radius: 10px; background: var(--soft); color: #fdba74; font-size: 0.9rem; margin-bottom: 16px; }
+
+    input[type="text"], input[type="search"], input[type="time"], input[type="number"], input[type="url"], select, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); font-size: 0.92rem;
+    }
+    input[type="text"]:focus, input[type="search"]:focus, input[type="time"]:focus, input[type="number"]:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; font-family: inherit; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row .field { margin-bottom: 0; }
+
+    .card.rule-form { margin-top: 16px; }
+    .rule-form h3 { margin-bottom: 4px; }
+    .rf-sec { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 18px; }
+    .rf-sec h4 { margin: 0 0 6px; font-size: 0.98rem; }
+    .rf-sec > .muted { font-size: 0.86rem; margin-bottom: 8px; }
+    details.rf-sec summary { cursor: pointer; font-weight: 600; }
+    .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; max-height: 280px; overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+    .check-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .check-item:hover { background: var(--surface-2); }
+    .check-item small { font-size: 0.8rem; }
+    .toggle { display: flex; align-items: center; gap: 8px; margin: 8px 0; cursor: pointer; font-size: 0.92rem; }
+    .toggles { display: flex; flex-wrap: wrap; gap: 16px; margin: 6px 0; }
+    input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
+    .radio-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 8px 0; }
+    .radio-card { position: relative; display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; background: var(--bg); }
+    .radio-card:has(input:checked) { border-color: var(--accent); background: var(--soft); }
+    .radio-card input { position: absolute; opacity: 0; pointer-events: none; }
+    .radio-card span { color: var(--muted); font-size: 0.84rem; }
+    .seg-label { display: block; font-size: 0.85rem; color: var(--muted); margin: 10px 0 4px; }
+    .segmented { display: inline-flex; padding: 3px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); }
+    .segmented button { border: 0; background: transparent; color: var(--muted); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+    .segmented button.active { background: var(--surface-2); color: var(--text); }
+    .repl-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+    .rule-summary { margin: 16px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--soft); color: #fdba74; font-size: 0.88rem; }
+
+    .rule-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 16px 18px; margin-bottom: 12px; }
+    .rule-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .rule-card p { font-size: 0.9rem; }
+    .badge { font-size: 0.78rem; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+    .badge.on { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+    .badge.off { background: var(--surface-2); color: var(--muted); }
+    .tpl-card .tpl-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .tpl-card .tpl-head h3 { margin: 0; }
+    .tag-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; align-items: end; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .tag-row:last-child { border-bottom: 0; }
+    .tag-row .field { margin-bottom: 0; }
+    .tag-row .field span { display: block; margin-bottom: 4px; }
+    .feed { list-style: none; padding: 0; margin: 0; }
+    .feed li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .feed .meta { display: block; color: var(--muted); font-size: 0.82rem; }
+    .meta { color: var(--muted); font-size: 0.82rem; }
+
     @media (max-width: 900px) {
       .app { grid-template-columns: 1fr; }
       .side { position: static; height: auto; flex-direction: row; overflow-x: auto; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
@@ -187,27 +247,214 @@
       <section data-section="espelhamento" hidden>
         <div class="topbar">
           <div><h1>Espelhamento</h1><p>Regras que copiam ofertas de um grupo e postam em outro.</p></div>
-          <button class="btn btn-primary" type="button">+ Nova regra</button>
+          <button class="btn btn-primary" type="button" id="rule-new" disabled>+ Nova regra</button>
         </div>
-        <div class="empty"><b>Nenhuma regra criada</b>Crie a primeira regra escolhendo os grupos de origem e de destino.</div>
+        <p class="notice-box" id="esp-aviso" hidden></p>
+        <p class="form-msg" id="esp-msg" hidden></p>
+        <p class="form-msg" id="rules-msg" hidden></p>
+        <div id="rules-list"></div>
+        <div class="empty" id="rules-empty"><b>Nenhuma regra criada</b>Crie a primeira regra escolhendo os grupos de origem e de destino.</div>
+
+        <form class="card rule-form" id="rule-form" novalidate hidden>
+          <h3 id="rule-title">Nova regra de espelhamento</h3>
+          <label class="field" style="margin-top:12px"><span>Nome da regra</span>
+            <input id="r-name" type="text" autocomplete="off" placeholder="Ex.: Impressão 3D"></label>
+          <label class="field"><span>Buscar grupo</span>
+            <input id="r-filter" type="search" autocomplete="off" placeholder="Ex.: ofertas, 3D, Vini Achados"></label>
+
+          <div class="rf-sec">
+            <h4>De onde vêm as ofertas?</h4>
+            <p class="muted">Escolha os grupos de origem. Só copia o que chegar nestes grupos.</p>
+            <div id="r-sources" class="group-list"></div>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Para quais grupos vão?</h4>
+            <p class="muted">Aparecem os grupos do seu número. Num grupo só de admins, o robô precisa ser admin.</p>
+            <div id="r-targets" class="group-list"></div>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Quais lojas trocar pelo seu link?</h4>
+            <p class="muted">Ligue ou desligue. Mensagens com link de loja desligada não vão para os seus grupos.</p>
+            <div class="toggles">
+              <label class="toggle"><input type="checkbox" id="r-st-ml" checked> Mercado Livre</label>
+              <label class="toggle"><input type="checkbox" id="r-st-shopee" checked> Shopee</label>
+              <label class="toggle"><input type="checkbox" id="r-st-amazon" checked> Amazon</label>
+            </div>
+            <label class="toggle"><input type="checkbox" id="r-only" checked> Postar só ofertas dessas lojas</label>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Qual etiqueta de afiliado usar?</h4>
+            <p class="muted">Para saber, no relatório de cada loja, quanto vem deste espelhamento. Vazio = a etiqueta do grupo de destino.</p>
+            <div class="field-row">
+              <label class="field"><span>Etiqueta da Amazon</span>
+                <input id="r-amazon-tag" type="text" autocomplete="off" placeholder="Ex.: sua-tag-20"></label>
+              <label class="field"><span>Sub-ID da Shopee</span>
+                <input id="r-shopee-sub" type="text" autocomplete="off" placeholder="Ex.: impressao3d"></label>
+            </div>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Como a oferta sai?</h4>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="r-image" value="off"><strong>Desligado, sai só o texto</strong><span>Sem foto, mesmo que o post original tenha.</span></label>
+              <label class="radio-card"><input type="radio" name="r-image" value="original" checked><strong>Repetir o formato do post original</strong><span>Se o post veio com foto, sai com foto; se veio só com texto, sai só texto.</span></label>
+              <label class="radio-card"><input type="radio" name="r-image" value="always"><strong>Sempre com foto</strong><span>Usa a foto do post ou, se ele não tiver, a foto da loja.</span></label>
+              <label class="radio-card"><input type="radio" name="r-image" value="link"><strong>Sempre com link preview</strong><span>Sai só o seu link. O cartão grande com foto e título aparece sozinho no WhatsApp.</span></label>
+            </div>
+            <label class="toggle"><input type="checkbox" id="r-nophoto"> Não repetir a mesma foto: a mesma foto, vinda de outro grupo de origem, não vai de novo para o mesmo grupo em 24 horas.</label>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Seu @ e seu site</h4>
+            <p class="muted">O @ e o site de quem postou nunca vão para os seus grupos: são trocados pelos seus ou removidos.</p>
+            <label class="field"><span>Seu @</span>
+              <input id="r-handle" type="text" autocomplete="off" value="@viniachados"></label>
+            <span class="seg-label">@ de quem postou</span>
+            <div class="segmented" data-seg="r-handle-mode">
+              <button type="button" data-value="replace">Trocar pelo meu</button>
+              <button type="button" data-value="remove">Só remover</button>
+            </div>
+            <input type="hidden" id="r-handle-mode" value="replace">
+            <p class="muted small" style="margin-top:6px">Todo @ de outra pessoa na mensagem é apagado, sem colocar nada no lugar.</p>
+            <label class="field" style="margin-top:14px"><span>Seu site (opcional)</span>
+              <input id="r-site" type="text" autocomplete="off" placeholder="Ex.: seusite.com.br"></label>
+            <span class="seg-label">Site de quem postou</span>
+            <div class="segmented" data-seg="r-site-mode">
+              <button type="button" data-value="replace">Trocar pelo meu</button>
+              <button type="button" data-value="remove">Só remover</button>
+            </div>
+            <input type="hidden" id="r-site-mode" value="remove">
+            <p class="muted small" style="margin-top:6px">Todo site de outra pessoa na mensagem é apagado. Links do Mercado Livre, Shopee e Amazon continuam virando o seu link de afiliado.</p>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Quando sai?</h4>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="r-hours" value="all" checked><strong>O dia todo</strong></label>
+              <label class="radio-card"><input type="radio" name="r-hours" value="range"><strong>Só em um horário</strong></label>
+            </div>
+            <div class="field-row" id="r-range" hidden>
+              <label class="field"><span>Postar a partir de</span>
+                <input id="r-start" type="time" value="08:00"></label>
+              <label class="field"><span>Até</span>
+                <input id="r-end" type="time" value="22:00"></label>
+            </div>
+          </div>
+
+          <div class="rf-sec">
+            <h4>Como a oferta sai no grupo?</h4>
+            <p class="muted">Igual à origem, ou remontada num modelo seu.</p>
+            <div class="radio-cards">
+              <label class="radio-card"><input type="radio" name="r-textmode" value="edit" checked><strong>Igual à origem</strong><span>Como hoje: só troca o link pelo seu.</span></label>
+              <label class="radio-card"><input type="radio" name="r-textmode" value="template"><strong>No meu modelo</strong><span>Remonta a oferta num modelo seu.</span></label>
+            </div>
+            <div id="r-tpl-block" hidden>
+              <label class="field"><span>Usar um modelo salvo</span>
+                <select id="r-tpl-pick"></select></label>
+              <div class="btn-row">
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="titulo">Título</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="preco">Preço</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="preco_antigo">Preço antigo</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="cupom">Cupom</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="loja">Loja</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="link">Meu link</button>
+                <button class="btn btn-sm btn-ghost" type="button" data-insert="r-tpl" data-f="links">Todos os meus links</button>
+              </div>
+              <select id="r-opening" aria-label="Frases de abertura" style="margin-bottom:10px"></select>
+              <textarea id="r-tpl" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
+              <label class="toggle"><input type="checkbox" id="r-random" checked> Sortear uma frase de abertura para cada post</label>
+              <div class="field-row" style="align-items:end">
+                <label class="field"><span>Salvar este texto como modelo</span>
+                  <input id="r-tpl-name" type="text" autocomplete="off" placeholder="Nome do modelo"></label>
+                <div><button class="btn btn-sm" type="button" id="r-tpl-save">Salvar modelo</button></div>
+              </div>
+              <p class="form-msg" id="r-tpl-msg" hidden></p>
+            </div>
+          </div>
+
+          <details class="rf-sec" id="r-extras">
+            <summary>Extras (opcional)</summary>
+            <label class="field" style="margin-top:12px"><span>Rodapé em toda oferta</span>
+              <input id="r-footer" type="text" autocomplete="off" placeholder="Ex.: Compre com o nosso link!"></label>
+            <div class="field-row">
+              <label class="field"><span>Palavras e frases bloqueadas (uma por linha)</span>
+                <textarea id="r-block" rows="3" placeholder="capinha&#10;sorteio"></textarea></label>
+              <label class="field"><span>Só enviar se tiver alguma destas (vazio = tudo)</span>
+                <textarea id="r-require" rows="3" placeholder="3d&#10;filamento&#10;impressora"></textarea></label>
+            </div>
+            <div class="field-row">
+              <label class="field"><span>Preço mínimo (R$)</span>
+                <input id="r-min" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 20"></label>
+              <label class="field"><span>Preço máximo (R$)</span>
+                <input id="r-max" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 300"></label>
+            </div>
+            <label class="field"><span>Desconto mínimo (%)</span>
+              <input id="r-mindisc" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 30"></label>
+            <label class="field"><span>Apagar linhas que contenham (uma por linha)</span>
+              <textarea id="r-drop" rows="3" placeholder="entre no grupo&#10;link do grupo&#10;chama no privado"></textarea></label>
+            <div class="field">
+              <span>Trocar ou apagar um texto. Para apagar, deixe "Trocar por" vazio.</span>
+              <div id="r-repl" style="margin-top:8px"></div>
+              <div class="btn-row"><button class="btn btn-sm btn-ghost" type="button" id="r-add-repl">+ Outra troca</button></div>
+            </div>
+          </details>
+
+          <p class="rule-summary" id="r-summary"></p>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="r-submit">Salvar regra</button>
+            <button class="btn btn-ghost" type="button" id="r-cancel" hidden>Cancelar</button>
+          </div>
+          <p class="form-msg err" id="rule-error" hidden></p>
+        </form>
       </section>
 
       <!-- Modelos -->
       <section data-section="modelos" hidden>
         <div class="topbar">
-          <div><h1>Modelos</h1><p>Textos que o robô usa para montar cada post.</p></div>
-          <button class="btn btn-primary" type="button">+ Monte o seu</button>
+          <div><h1>Modelos</h1><p>Textos que o robô usa para montar cada post. Os prontos você pode usar; os seus, editar.</p></div>
         </div>
         <div class="grid-2" id="templates"></div>
+        <form class="card" id="tpl-form" novalidate style="margin-top:16px">
+          <h3 id="tpl-title">Monte o seu modelo</h3>
+          <label class="field" style="margin-top:12px"><span>Nome do modelo</span>
+            <input id="tpl-name" type="text" autocomplete="off" placeholder="Ex.: Meu post"></label>
+          <div class="btn-row">
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="titulo">Título</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="preco">Preço</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="preco_antigo">Preço antigo</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="cupom">Cupom</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="loja">Loja</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="link">Meu link</button>
+            <button class="btn btn-sm btn-ghost" type="button" data-insert="tpl-text" data-f="links">Todos os meus links</button>
+          </div>
+          <textarea id="tpl-text" rows="6" placeholder="🔥 {titulo}&#10;De {preco_antigo} por {preco}&#10;👉 Compre aqui: {link}"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit">Salvar modelo</button>
+            <button class="btn btn-ghost" type="button" id="tpl-cancel" hidden>Cancelar edição</button>
+            <button class="btn btn-ghost" type="button" id="tpl-new">+ Novo modelo em branco</button>
+          </div>
+          <p class="form-msg" id="tpl-msg" hidden></p>
+        </form>
       </section>
 
       <!-- Grupos -->
       <section data-section="grupos" hidden>
         <div class="topbar">
           <div><h1>Grupos</h1><p>Os grupos do número conectado, com a etiqueta de afiliado de cada um.</p></div>
-          <button class="btn btn-ghost" type="button">Atualizar grupos</button>
+          <button class="btn btn-ghost" type="button" id="grp-refresh">Atualizar grupos</button>
         </div>
-        <div class="empty"><b>Nenhum número conectado</b>Conecte o número do robô para listar os seus grupos.</div>
+        <p class="form-msg" id="grp-msg" hidden></p>
+        <div class="empty" id="grp-empty"><b>Nenhum número conectado</b>Conecte o número do robô na página Conexões para listar os seus grupos.</div>
+        <form class="card" id="tags-form" novalidate hidden>
+          <h3>Etiquetas por grupo</h3>
+          <p class="muted" style="margin:6px 0 10px;font-size:.9rem">Cada grupo pode ter a sua tag da Amazon e o seu sub-ID da Shopee, para o relatório mostrar de onde veio cada venda. Vazio = usa as etiquetas gerais.</p>
+          <div id="tags-rows"></div>
+          <div class="btn-row"><button class="btn btn-primary" type="submit">Salvar etiquetas</button></div>
+          <p class="form-msg" id="tags-msg" hidden></p>
+        </form>
       </section>
 
       <!-- Relatório -->
@@ -215,7 +462,12 @@
         <div class="topbar">
           <div><h1>Relatório</h1><p>O que foi enviado, pulado e por quê.</p></div>
         </div>
-        <div class="empty"><b>Sem dados para mostrar</b>O relatório do dia aparece quando o robô começar a trabalhar.</div>
+        <p class="muted small" id="rel-today"></p>
+        <div class="empty" id="rel-empty"><b>Sem dados para mostrar</b>O relatório do dia aparece quando o robô começar a trabalhar.</div>
+        <div class="card" style="margin-top:14px">
+          <h3>Últimas atividades</h3>
+          <ul class="feed" id="rel-activity"></ul>
+        </div>
       </section>
 
       <!-- Configurações -->
@@ -322,11 +574,27 @@
             <div class="row"><div>Plano atual<small>Nenhum plano ativo. A cobrança ainda não está conectada.</small></div></div>
           </div>
         </div>
+        <form class="card" id="lim-form" novalidate style="margin-top:16px">
+          <h3>Limites contra bloqueio</h3>
+          <p class="muted" style="margin:6px 0 12px;font-size:.9rem">Acima destes números o robô pula o post e registra o motivo. Valem para o espelhamento e para a Vitrine.</p>
+          <div class="field-row">
+            <label class="field"><span>Posts por hora em cada grupo</span>
+              <input id="lim-group-hour" type="number" min="1" max="1000" step="1"></label>
+            <label class="field"><span>Posts por dia em cada grupo</span>
+              <input id="lim-group-day" type="number" min="1" max="1000" step="1"></label>
+          </div>
+          <label class="field"><span>Posts por hora no total</span>
+            <input id="lim-total-hour" type="number" min="1" max="1000" step="1"></label>
+          <div class="btn-row"><button class="btn btn-primary" type="submit">Salvar limites</button></div>
+          <p class="form-msg" id="lim-msg" hidden></p>
+          <ul class="feed" id="lim-usage"></ul>
+        </form>
       </section>
     </main>
   </div>
 
   <script type="module">
+    import { initEspelho } from './painel-espelho.js';
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
     import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -358,12 +626,6 @@
       'auth/invalid-email': 'Informe um e-mail válido.',
       'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
     };
-
-    const TEMPLATES = [
-      { name: 'Post padrão', text: '{titulo}\n\n❌ {preco_antigo}\n✅ {preco}\n\nCupom: {cupom}\n\n👉 {link}' },
-      { name: 'Direto e agressivo', text: '🚨 {titulo}\n❌ De {preco_antigo}\n✅ Por {preco}\nCupom: {cupom}\n👉 {link}' },
-      { name: 'Limpo', text: '🔥 Oferta do dia\n{titulo}\nDe {preco_antigo} por {preco}\n👉 {link}' },
-    ];
 
     const $ = (id) => document.getElementById(id);
     let mode = 'entrar';
@@ -431,20 +693,9 @@
         const view = button.dataset.view;
         document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b === button));
         document.querySelectorAll('[data-section]').forEach((s) => { s.hidden = s.dataset.section !== view; });
+        espelho.onView(view);
       });
     });
-
-    $('templates').replaceChildren(...TEMPLATES.map((t) => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const title = document.createElement('h3');
-      title.textContent = t.name;
-      const pre = document.createElement('pre');
-      pre.className = 'msg';
-      pre.textContent = t.text;
-      card.append(title, pre);
-      return card;
-    }));
 
     /* ---------- Conexões com o robô local ---------- */
     const ROBO_KEY = 'achofiliado-robo';
@@ -527,10 +778,13 @@
       }
     }
 
+    const espelho = initEspelho({ roboCall });
+
     $('robo-conectar').addEventListener('click', async () => {
       saveRobo({ url: $('robo-url').value.trim(), token: $('robo-token').value.trim() });
       $('robo-msg').textContent = 'Conectando…';
       await loadConnections();
+      espelho.refresh();
     });
 
     $('robo-esquecer').addEventListener('click', () => {
@@ -575,7 +829,7 @@
     (function restoreRobo() {
       const saved = readRobo();
       if (saved.url) $('robo-url').value = saved.url;
-      if (saved.token) { $('robo-token').value = saved.token; loadConnections({ quiet: true }); }
+      if (saved.token) { $('robo-token').value = saved.token; loadConnections({ quiet: true }); espelho.refresh(); }
     })();
 
     onAuthStateChanged(auth, (user) => showSession(user));

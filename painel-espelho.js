@@ -43,6 +43,7 @@ const FIELD_SAMPLE = {
   loja: 'Mercado Livre',
   link: 'https://meli.la/exemplo',
   links: 'https://meli.la/exemplo',
+  condicao: 'Compre no mínimo 2 unidades',
 };
 
 const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

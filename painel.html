@@ -249,6 +249,7 @@
       <button class="nav-item" data-view="espelhamento"><span class="ico">⇄</span>Espelhamento</button>
       <button class="nav-item" data-view="modelos"><span class="ico">✦</span>Modelos</button>
       <button class="nav-item" data-view="vitrine"><span class="ico">◈</span>Vitrine</button>
+      <button class="nav-item" data-view="converter"><span class="ico">✎</span>Converter</button>
       <button class="nav-item" data-view="grupos"><span class="ico">◎</span>Grupos</button>
       <button class="nav-item" data-view="conexoes"><span class="ico">⇆</span>Conexões</button>
       <div class="group-title">Acompanhar</div>
@@ -583,6 +584,33 @@
         <p class="form-msg" id="vt-send-msg" hidden></p>
       </section>
 
+      <!-- Converter -->
+      <section data-section="converter" hidden>
+        <div class="topbar">
+          <div><h1>Converter mensagem</h1><p>Cole uma oferta. O robô troca os links pelos seus e, se você escolher um modelo, monta a mensagem nele. Só copia: nada é enviado para grupo.</p></div>
+        </div>
+
+        <form class="card" id="cv-form" novalidate>
+          <label class="field"><span>Mensagem da oferta</span>
+            <textarea id="cv-text" rows="8" placeholder="Cole aqui a mensagem com os links"></textarea></label>
+          <label class="field"><span>Modelo</span>
+            <select id="cv-tpl" aria-label="Modelo da mensagem"></select></label>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="cv-btn">Converter</button>
+          </div>
+        </form>
+
+        <p class="form-msg" id="cv-msg" hidden></p>
+
+        <div class="card" id="cv-result" hidden style="margin-top:16px">
+          <h3>Pronto para copiar</h3>
+          <textarea id="cv-out" rows="10" aria-label="Mensagem convertida"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="button" id="cv-copy">Copiar</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Grupos -->
       <section data-section="grupos" hidden>
         <div class="topbar">
@@ -739,6 +767,7 @@
   <script type="module">
     import { initEspelho } from './painel-espelho.js';
     import { initVitrine } from './painel-vitrine.js';
+    import { initConverter } from './painel-converter.js';
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
     import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -839,6 +868,7 @@
         document.querySelectorAll('[data-section]').forEach((s) => { s.hidden = s.dataset.section !== view; });
         espelho.onView(view);
         vitrine.onView(view);
+        converter.onView(view);
       });
     });
 
@@ -925,6 +955,7 @@
 
     const espelho = initEspelho({ roboCall });
     const vitrine = initVitrine({ roboCall });
+    const converter = initConverter({ roboCall });
 
     $('robo-conectar').addEventListener('click', async () => {
       saveRobo({ url: $('robo-url').value.trim(), token: $('robo-token').value.trim() });

@@ -1,0 +1,193 @@
+/**
+ * Seção Cupons: você cola mensagens com cupom e o robô acha e guarda o código e a condição.
+ * Depois escolhe um cupom, os grupos e envia, com a foto da loja quando houver.
+ * Tudo passa pelo robô local (roboCall), como no restante do painel.
+ */
+const STORES = [
+  ['mercadolivre', 'Mercado Livre'],
+  ['amazon', 'Amazon'],
+  ['shopee', 'Shopee'],
+];
+const LABEL = Object.fromEntries(STORES);
+
+export function initCupons({ roboCall }) {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, ...kids) => {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...kids.filter((k) => k !== null && k !== undefined));
+    return node;
+  };
+  const setMsg = (id, text, isError = false) => {
+    const box = $(id);
+    box.textContent = text;
+    box.hidden = !text;
+    box.style.color = isError ? '#f87171' : '';
+    box.style.whiteSpace = 'pre-line';
+  };
+
+  let coupons = [];
+  let selectedId = null;
+
+  function renderList() {
+    $('cp-empty').hidden = coupons.length > 0;
+    $('cp-list').replaceChildren(
+      ...coupons.map((c) => {
+        const sent = (c.sentTo ?? []).length;
+        return el('li', { className: `cp-item${c.id === selectedId ? ' selected' : ''}` },
+          el('div', { className: 'cp-code', textContent: c.code }),
+          el('small', {
+            className: 'muted',
+            textContent: [LABEL[c.store] ?? 'Qualquer loja', c.condition, sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
+          }),
+          el('div', { className: 'btn-row' },
+            el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),
+            el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => remove(c) }),
+          ),
+        );
+      }),
+    );
+  }
+
+  async function load() {
+    const r = await roboCall('/api/coupons');
+    coupons = r.coupons ?? [];
+    renderList();
+  }
+
+  async function loadImages() {
+    const boxes = await Promise.all(
+      STORES.map(async ([store, label]) => {
+        const { dataUrl } = await roboCall(`/api/coupons/image?store=${store}`);
+        const input = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp' });
+        input.setAttribute('aria-label', `Foto para ${label}`);
+        input.addEventListener('change', () => uploadImage(store, input.files?.[0]));
+        return el('div', { className: 'cp-img-box' },
+          el('strong', { textContent: label }),
+          dataUrl
+            ? el('img', { src: dataUrl, alt: `Foto do cupom ${label}` })
+            : el('small', { className: 'muted', textContent: 'Sem foto: o cupom sai só com texto' }),
+          input,
+        );
+      }),
+    );
+    $('cp-images').replaceChildren(...boxes);
+  }
+
+  function uploadImage(store, file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await roboCall('/api/coupons/image', { method: 'POST', body: { store, dataUrl: reader.result } });
+        setMsg('cp-msg', `Foto da ${LABEL[store]} salva.`);
+        await loadImages();
+      } catch (err) {
+        setMsg('cp-msg', err.message, true);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function loadTargets() {
+    const wa = await roboCall('/api/whatsapp/status');
+    const mine = (wa.groups ?? []).filter((g) => !g.announce || g.admin); // onde o robô pode postar
+    const checked = new Set([...document.querySelectorAll('input[name="cp-target"]:checked')].map((i) => i.value));
+    $('cp-targets').replaceChildren(
+      ...mine.map((g) => el('label', {}, el('input', { type: 'checkbox', name: 'cp-target', value: g.id, checked: checked.has(g.id) }), ` ${g.name}`)),
+    );
+    if (!mine.length) $('cp-targets').append(el('p', { className: 'muted', textContent: 'Conecte o WhatsApp para escolher os grupos.' }));
+  }
+
+  async function openSend(c) {
+    selectedId = c.id;
+    renderList();
+    $('cp-send-form').hidden = false;
+    $('cp-send-title').textContent = `Enviar o cupom ${c.code}`;
+    setMsg('cp-send-msg', '');
+    try {
+      const [{ text }] = await Promise.all([roboCall(`/api/coupons/message?id=${encodeURIComponent(c.id)}`), loadTargets()]);
+      $('cp-send-text').value = text;
+    } catch (err) {
+      setMsg('cp-send-msg', err.message, true);
+    }
+    $('cp-send-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async function remove(c) {
+    if (!confirm(`Remover o cupom ${c.code}?`)) return;
+    try {
+      await roboCall(`/api/coupons?id=${encodeURIComponent(c.id)}`, { method: 'DELETE' });
+      if (selectedId === c.id) {
+        selectedId = null;
+        $('cp-send-form').hidden = true;
+      }
+      setMsg('cp-msg', `Cupom ${c.code} removido.`);
+      await load();
+    } catch (err) {
+      setMsg('cp-msg', err.message, true);
+    }
+  }
+
+  $('cp-identify-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const text = $('cp-text').value.trim();
+    if (!text) return setMsg('cp-msg', 'Cole a mensagem com o cupom.', true);
+    try {
+      const r = await roboCall('/api/coupons/identify', { method: 'POST', body: { text } });
+      if (!r.found) return setMsg('cp-msg', r.reason || 'Não achei cupom nessa mensagem.', true);
+      setMsg('cp-msg', `${r.found} cupom(s) achado(s): ${r.created} novo(s), ${r.updated} atualizado(s).`);
+      $('cp-text').value = '';
+      await load();
+    } catch (err) {
+      setMsg('cp-msg', err.message, true);
+    }
+  });
+
+  $('cp-new-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      await roboCall('/api/coupons', {
+        method: 'POST',
+        body: { code: $('cp-new-code').value, store: $('cp-new-store').value, condition: $('cp-new-cond').value },
+      });
+      event.target.reset();
+      setMsg('cp-msg', 'Cupom guardado.');
+      await load();
+    } catch (err) {
+      setMsg('cp-msg', err.message, true);
+    }
+  });
+
+  $('cp-send-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const targets = [...document.querySelectorAll('input[name="cp-target"]:checked')].map((i) => i.value);
+    if (!targets.length) return setMsg('cp-send-msg', 'Escolha pelo menos um grupo.', true);
+    const text = $('cp-send-text').value.trim();
+    if (!text) return setMsg('cp-send-msg', 'A mensagem está vazia.', true);
+    $('cp-send-btn').disabled = true;
+    try {
+      const r = await roboCall('/api/coupons/send', { method: 'POST', body: { id: selectedId, targets, text } });
+      const parts = [`${r.queued} envio${r.queued === 1 ? '' : 's'} na fila do robô (${r.photo}).`];
+      if (r.blocked?.length) parts.push(`Não enviado pelo limite: ${r.blocked.map((b) => b.group).join(', ')}.`);
+      setMsg('cp-send-msg', parts.join('\n'), (r.blocked ?? []).length > 0);
+      await load();
+    } catch (err) {
+      setMsg('cp-send-msg', err.message, true);
+    } finally {
+      $('cp-send-btn').disabled = false;
+    }
+  });
+
+  return {
+    onView(view) {
+      if (view !== 'cupons') return;
+      load().catch((err) => setMsg('cp-msg', err.message, true));
+      loadImages().catch((err) => setMsg('cp-msg', err.message, true));
+    },
+    /** Lista de cupons para o seletor dos produtos (vitrine). */
+    async list() {
+      const r = await roboCall('/api/coupons');
+      return r.coupons ?? [];
+    },
+  };
+}

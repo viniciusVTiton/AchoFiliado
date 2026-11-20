@@ -17,6 +17,7 @@ export function initVitrine({ roboCall }) {
   let visible = false;
   let query = '';
   let storeFilter = '';
+  let couponList = []; // cupons da seção Cupons, para vincular aos produtos
 
   const el = (tag, props = {}, ...children) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -118,6 +119,25 @@ export function initVitrine({ roboCall }) {
   function productCard(p) {
     const couponCode = el('input', { type: 'text', value: p.coupon || '', placeholder: 'Código do cupom (ex.: SHO1125)', autocomplete: 'off' });
     const couponInfo = el('input', { type: 'text', value: p.couponInfo || '', placeholder: 'Condição (ex.: R$25 OFF acima de R$199)', autocomplete: 'off' });
+    // Cupom guardado na seção Cupons: ao escolher, o código e a condição vêm dele.
+    const couponPick = el('select', {
+      onchange: () => {
+        const c = couponList.find((x) => x.id === couponPick.value);
+        if (!c) return;
+        couponCode.value = c.code;
+        couponInfo.value = c.condition ?? '';
+      },
+    });
+    couponPick.setAttribute('aria-label', `Cupom da seção Cupons para ${p.title}`);
+    couponPick.append(
+      el('option', { value: '', textContent: 'Sem vínculo (digitar abaixo)' }),
+      ...couponList.map((c) => el('option', { value: c.id, textContent: `${c.code}${c.condition ? ' · ' + c.condition : ''}` })),
+    );
+    couponPick.value = p.couponId ?? '';
+    // Se você mudar o código à mão, o vínculo com a seção Cupons sai.
+    couponCode.addEventListener('input', () => {
+      couponPick.value = '';
+    });
     const saveCoupon = el('button', {
       type: 'button',
       className: 'btn btn-sm btn-ghost',
@@ -126,7 +146,7 @@ export function initVitrine({ roboCall }) {
         try {
           await roboCall('/api/products', {
             method: 'POST',
-            body: { ...p, coupon: couponCode.value, couponInfo: couponInfo.value },
+            body: { ...p, coupon: couponCode.value, couponInfo: couponInfo.value, couponId: couponPick.value },
           });
           // Se há modelo escolhido, a mensagem é montada de novo com o cupom salvo.
           await applyTemplate(p.id, tplChoice.get(p.id) ?? '');
@@ -173,6 +193,7 @@ export function initVitrine({ roboCall }) {
       el('label', { className: 'field' }, el('span', { textContent: 'Modelo do texto' }), tplSelect),
       el('label', { className: 'field' }, el('span', { textContent: 'Mensagem' }), area),
       el('div', { className: 'vt-coupon' },
+        el('label', { className: 'field' }, el('span', { textContent: 'Cupom da seção Cupons' }), couponPick),
         el('label', { className: 'field' }, el('span', { textContent: 'Cupom deste produto' }), couponCode),
         el('label', { className: 'field' }, el('span', { textContent: 'Condição do cupom' }), couponInfo),
         el('div', { className: 'btn-row' }, saveCoupon),
@@ -258,6 +279,8 @@ export function initVitrine({ roboCall }) {
         roboCall('/api/templates'),
       ]);
       templateList = tpl.templates ?? [];
+      // Se a seção Cupons não responder, a vitrine segue com a lista anterior.
+      couponList = await roboCall('/api/coupons').then((r) => r.coupons ?? []).catch(() => couponList);
       renderBulkTemplates();
       $('vt-ext').textContent = ml.online
         ? 'Extensão do Chrome: conectada. Links do Mercado Livre saem na sua conta.'

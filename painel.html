@@ -136,6 +136,13 @@
     .vt-send-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .vt-main { min-width: 0; }
     .vt-actions { margin: 0; }
+    .cp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .cp-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 6px; }
+    .cp-item.selected { border-color: var(--accent); }
+    .cp-code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; letter-spacing: 0.04em; }
+    .cp-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .cp-img-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; }
+    .cp-img-box img { width: 100%; max-height: 120px; object-fit: contain; border-radius: 8px; background: var(--bg); }
     .check-item .freq { margin-left: auto; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-size: 0.85rem; }
     .vt-row { display: grid; grid-template-columns: auto 44px minmax(0, 2.4fr) 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
     .vt-row.selected { border-color: var(--accent); }
@@ -250,6 +257,7 @@
       <button class="nav-item" data-view="modelos"><span class="ico">✦</span>Modelos</button>
       <button class="nav-item" data-view="vitrine"><span class="ico">◈</span>Vitrine</button>
       <button class="nav-item" data-view="converter"><span class="ico">✎</span>Converter</button>
+      <button class="nav-item" data-view="cupons"><span class="ico">％</span>Cupons</button>
       <button class="nav-item" data-view="grupos"><span class="ico">◎</span>Grupos</button>
       <button class="nav-item" data-view="conexoes"><span class="ico">⇆</span>Conexões</button>
       <div class="group-title">Acompanhar</div>
@@ -622,6 +630,66 @@
         </div>
       </section>
 
+      <!-- Cupons -->
+      <section data-section="cupons" hidden>
+        <div class="topbar">
+          <div><h1>Cupons</h1><p>Cole mensagens com cupom: o robô acha o código e a condição e guarda cada um. Depois escolha o cupom, os grupos e envie, com a foto da loja.</p></div>
+        </div>
+
+        <form class="card" id="cp-identify-form" novalidate>
+          <h3>Identificar cupons</h3>
+          <label class="field" style="margin-top:12px"><span>Mensagem com o cupom</span>
+            <textarea id="cp-text" rows="6" placeholder="Cole aqui uma ou mais mensagens com cupom"></textarea></label>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit">Identificar e guardar</button>
+          </div>
+        </form>
+
+        <p class="form-msg" id="cp-msg" hidden></p>
+
+        <details class="card" style="margin-top:16px">
+          <summary>Criar um cupom à mão</summary>
+          <form id="cp-new-form" novalidate style="margin-top:12px">
+            <div class="field-row">
+              <label class="field"><span>Código</span><input id="cp-new-code" type="text" autocomplete="off" placeholder="Ex.: INOVATECHML"></label>
+              <label class="field"><span>Loja</span>
+                <select id="cp-new-store">
+                  <option value="">Qualquer loja</option>
+                  <option value="mercadolivre">Mercado Livre</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="shopee">Shopee</option>
+                </select></label>
+            </div>
+            <label class="field"><span>Condição (opcional)</span><input id="cp-new-cond" type="text" autocomplete="off" placeholder="Ex.: 10% OFF, limitado a R$200"></label>
+            <div class="btn-row"><button class="btn btn-ghost" type="submit">Guardar cupom</button></div>
+          </form>
+        </details>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Foto de cada loja</h3>
+          <p class="muted">A foto sai junto com o cupom daquela loja. Sem foto, o cupom sai só com texto.</p>
+          <div class="cp-images" id="cp-images"></div>
+        </div>
+
+        <h3 style="margin-top:20px">Cupons guardados</h3>
+        <p class="muted" id="cp-empty" hidden>Nenhum cupom ainda. Cole uma mensagem acima.</p>
+        <ul class="cp-list" id="cp-list"></ul>
+
+        <form class="card" id="cp-send-form" novalidate hidden style="margin-top:16px">
+          <h3 id="cp-send-title">Enviar cupom</h3>
+          <label class="field"><span>Mensagem</span>
+            <textarea id="cp-send-text" rows="5"></textarea></label>
+          <fieldset class="field" style="border:0;padding:0">
+            <legend class="muted">Para estes grupos</legend>
+            <div id="cp-targets" class="group-list"></div>
+          </fieldset>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="cp-send-btn">Enviar agora</button>
+          </div>
+          <p class="form-msg" id="cp-send-msg" hidden></p>
+        </form>
+      </section>
+
       <!-- Grupos -->
       <section data-section="grupos" hidden>
         <div class="topbar">
@@ -779,6 +847,7 @@
     import { initEspelho } from './painel-espelho.js';
     import { initVitrine } from './painel-vitrine.js';
     import { initConverter } from './painel-converter.js';
+    import { initCupons } from './painel-cupons.js';
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
     import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -880,6 +949,7 @@
         espelho.onView(view);
         vitrine.onView(view);
         converter.onView(view);
+        cupons.onView(view);
       });
     });
 
@@ -967,6 +1037,7 @@
     const espelho = initEspelho({ roboCall });
     const vitrine = initVitrine({ roboCall });
     const converter = initConverter({ roboCall });
+    const cupons = initCupons({ roboCall });
 
     $('robo-conectar').addEventListener('click', async () => {
       saveRobo({ url: $('robo-url').value.trim(), token: $('robo-token').value.trim() });

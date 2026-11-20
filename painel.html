@@ -117,6 +117,17 @@
     .rf-sec h4 { margin: 0 0 6px; font-size: 0.98rem; }
     .rf-sec > .muted { font-size: 0.86rem; margin-bottom: 8px; }
     details.rf-sec summary { cursor: pointer; font-weight: 600; }
+    .vt-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .vt-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+    .vt-item.selected { border-color: var(--accent); }
+    .vt-head { display: flex; align-items: center; gap: 12px; }
+    .vt-head input[type=checkbox] { width: 18px; height: 18px; flex: none; }
+    .vt-img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; flex: none; background: var(--bg); }
+    .vt-info { min-width: 0; }
+    .vt-info strong { overflow-wrap: anywhere; }
+    .vt-meta { font-size: 0.86rem; }
+    .vt-coupon { display: grid; gap: 0; }
+    .vt-item textarea { width: 100%; }
     .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; max-height: 280px; overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
     .check-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .check-item:hover { background: var(--surface-2); }
@@ -218,6 +229,7 @@
       <button class="nav-item active" data-view="visao"><span class="ico">▦</span>Visão geral</button>
       <button class="nav-item" data-view="espelhamento"><span class="ico">⇄</span>Espelhamento</button>
       <button class="nav-item" data-view="modelos"><span class="ico">✦</span>Modelos</button>
+      <button class="nav-item" data-view="vitrine"><span class="ico">◈</span>Vitrine</button>
       <button class="nav-item" data-view="grupos"><span class="ico">◎</span>Grupos</button>
       <button class="nav-item" data-view="conexoes"><span class="ico">⇆</span>Conexões</button>
       <div class="group-title">Acompanhar</div>
@@ -488,6 +500,48 @@
         </form>
       </section>
 
+      <!-- Vitrine -->
+      <section data-section="vitrine" hidden>
+        <div class="topbar">
+          <div><h1>Vitrine</h1><p>Produtos com cupom vinculado. Cadastre colando o link, escolha os produtos e envie para os seus grupos.</p></div>
+        </div>
+        <p class="muted" id="vt-ext">Extensão: verificando…</p>
+
+        <form class="card" id="vt-add" novalidate style="margin-bottom:16px">
+          <h3>Adicionar produto</h3>
+          <label class="field" style="margin-top:12px"><span>Link do produto (Amazon, Shopee ou Mercado Livre)</span>
+            <input id="vt-url" type="url" required placeholder="https://..."></label>
+          <div class="field-row">
+            <label class="field"><span>Nome (opcional: o robô busca)</span><input id="vt-title" type="text" autocomplete="off"></label>
+            <label class="field"><span>Preço (ex.: 19,55)</span><input id="vt-price" type="text" autocomplete="off"></label>
+            <label class="field"><span>Preço antigo (opcional)</span><input id="vt-old" type="text" autocomplete="off"></label>
+          </div>
+          <div class="field-row">
+            <label class="field"><span>Cupom deste produto</span><input id="vt-coupon" type="text" autocomplete="off" placeholder="Ex.: SHO1125"></label>
+            <label class="field"><span>Condição do cupom</span><input id="vt-coupon-info" type="text" autocomplete="off" placeholder="Ex.: R$25 OFF acima de R$199"></label>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="vt-add-btn">Adicionar à vitrine</button>
+          </div>
+        </form>
+
+        <p class="form-msg" id="vt-msg" hidden></p>
+        <div class="card" id="vt-empty" hidden><p class="muted">Nenhum produto ainda. Cole o link de um produto acima.</p></div>
+        <ul id="vt-list" class="vt-list"></ul>
+
+        <form class="card" id="vt-send" novalidate hidden style="margin-top:16px">
+          <h3>Enviar <span id="vt-send-count">0 produtos</span></h3>
+          <fieldset class="field" style="border:0;padding:0">
+            <legend class="muted">Para estes grupos</legend>
+            <div id="vt-targets" class="group-list"></div>
+          </fieldset>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit">Enviar agora</button>
+          </div>
+          <p class="form-msg" id="vt-send-msg" hidden></p>
+        </form>
+      </section>
+
       <!-- Grupos -->
       <section data-section="grupos" hidden>
         <div class="topbar">
@@ -643,6 +697,7 @@
 
   <script type="module">
     import { initEspelho } from './painel-espelho.js';
+    import { initVitrine } from './painel-vitrine.js';
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
     import { getFirestore, connectFirestoreEmulator, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -742,6 +797,7 @@
         document.querySelectorAll('.nav-item').forEach((b) => b.classList.toggle('active', b === button));
         document.querySelectorAll('[data-section]').forEach((s) => { s.hidden = s.dataset.section !== view; });
         espelho.onView(view);
+        vitrine.onView(view);
       });
     });
 
@@ -827,6 +883,7 @@
     }
 
     const espelho = initEspelho({ roboCall });
+    const vitrine = initVitrine({ roboCall });
 
     $('robo-conectar').addEventListener('click', async () => {
       saveRobo({ url: $('robo-url').value.trim(), token: $('robo-token').value.trim() });

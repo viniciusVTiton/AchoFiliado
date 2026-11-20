@@ -1,0 +1,29 @@
+{
+  "updatedAt": "2026-11-20T00:37:26.576Z",
+  "items": [
+    {
+      "id": "6e09791c-5835-4d7a-a457-9269a0c03fe9",
+      "store": "mercadolivre",
+      "title": "Grand Theft Auto Vi - Playstation 5",
+      "price": "359,92",
+      "oldPrice": "449,90",
+      "image": "https://http2.mlstatic.com/D_NQ_NP_851016-MLB116174445930_092026-O-grand-theft-auto-vi--playstation-5.webp",
+      "affiliateUrl": "https://meli.la/2ZudCk7",
+      "coupon": "GTA",
+      "couponInfo": "20 OFF",
+      "addedAt": "2026-11-20T00:28:51.364Z"
+    },
+    {
+      "id": "21c79d25-130b-4ddb-9e6d-8a4a5209d017",
+      "store": "mercadolivre",
+      "title": "iPhone 16e (128 GB) - Branco - Distribuidor Autorizado",
+      "price": "3.433,33",
+      "oldPrice": "5.799",
+      "image": "https://http2.mlstatic.com/D_NQ_NP_938094-MLA96869129517_102025-O.webp",
+      "affiliateUrl": "https://meli.la/3338rV3",
+      "coupon": "",
+      "couponInfo": "",
+      "addedAt": "2026-11-17T01:37:36.258Z"
+    }
+  ]
+}

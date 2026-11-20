@@ -1,6 +1,18 @@
 {
   "items": [
     {
+      "id": "1c0c42ac-d186-49bd-a0ea-83b238860cfa",
+      "store": "mercadolivre",
+      "title": "Mouse Sem Fio Logitech Mx Master 3s Bluetooth Edition",
+      "price": "409,90",
+      "oldPrice": "599,90",
+      "image": "https://http2.mlstatic.com/D_NQ_NP_913337-MLA101933653278_122025-O-mouse-sem-fio-logitech-mx-master-3s-bluetooth-edition.webp",
+      "affiliateUrl": "https://meli.la/2S4tMSc",
+      "coupon": "",
+      "couponInfo": "",
+      "addedAt": "2026-11-20T12:49:24.261Z"
+    },
+    {
       "id": "3566eaa4-7140-4f89-b097-532184620d4c",
       "store": "mercadolivre",
       "title": "Processador AMD Ryzen 5 5500 3.6GHz 4.2GHz Max Turbo Cache 16MB AM4",

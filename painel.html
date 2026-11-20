@@ -128,6 +128,23 @@
     .vt-meta { font-size: 0.86rem; }
     .vt-coupon { display: grid; gap: 0; }
     .vt-item textarea { width: 100%; }
+    .vt-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+    .vt-summary .card b { display: block; font-size: 1.5rem; }
+    .vt-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .vt-toolbar input[type=search] { flex: 1 1 220px; }
+    .vt-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .vt-seg button { background: var(--surface); color: var(--muted); border: 0; padding: 8px 14px; cursor: pointer; font: inherit; }
+    .vt-seg button.on { background: var(--accent); color: #fff; }
+    .vt-row { display: grid; grid-template-columns: auto 44px minmax(0, 2.4fr) 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
+    .vt-row.selected { border-color: var(--accent); }
+    .vt-row input[type=checkbox] { width: 18px; height: 18px; }
+    .vt-row .vt-img { width: 44px; height: 44px; border-radius: 8px; }
+    .vt-row .vt-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .vt-row small { color: var(--muted); }
+    @media (max-width: 760px) {
+      .vt-row { grid-template-columns: auto 44px 1fr auto; }
+      .vt-row .vt-cell-hide { display: none; }
+    }
     .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; max-height: 280px; overflow: auto; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
     .check-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .check-item:hover { background: var(--surface-2); }
@@ -524,6 +541,25 @@
             <button class="btn btn-primary" type="submit" id="vt-add-btn">Adicionar à vitrine</button>
           </div>
         </form>
+
+        <div class="vt-summary">
+          <div class="card"><small class="muted">Produtos</small><b id="vt-total">0</b></div>
+          <div class="card"><small class="muted">Com cupom</small><b id="vt-coupons">0</b></div>
+          <div class="card"><small class="muted">Já enviados</small><b id="vt-sent">0</b></div>
+        </div>
+        <div class="vt-toolbar">
+          <input id="vt-search" type="search" placeholder="Buscar na vitrine" autocomplete="off" aria-label="Buscar na vitrine">
+          <select id="vt-store-filter" aria-label="Filtrar por loja">
+            <option value="">Todas as lojas</option>
+            <option value="amazon">Amazon</option>
+            <option value="shopee">Shopee</option>
+            <option value="mercadolivre">Mercado Livre</option>
+          </select>
+          <div class="vt-seg" role="group" aria-label="Modo de visualização">
+            <button type="button" id="vt-view-lista">Lista</button>
+            <button type="button" id="vt-view-cards">Cards</button>
+          </div>
+        </div>
 
         <p class="form-msg" id="vt-msg" hidden></p>
         <div class="card" id="vt-empty" hidden><p class="muted">Nenhum produto ainda. Cole o link de um produto acima.</p></div>

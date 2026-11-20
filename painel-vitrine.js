@@ -1,8 +1,12 @@
 /**
  * Vitrine no painel: produtos guardados no robô, com cupom vinculado a cada um.
  * Você cadastra colando o link do produto, escolhe os produtos e envia para os grupos.
+ * Dá para ver em lista (compacta) ou em cards (com cupom e texto editáveis).
  * Tudo passa pelo robô local (roboCall), como no restante do painel.
  */
+const VIEW_KEY = 'vt-view';
+const STORE_LABEL = { amazon: 'Amazon', shopee: 'Shopee', mercadolivre: 'Mercado Livre' };
+
 export function initVitrine({ roboCall }) {
   const $ = (id) => document.getElementById(id);
   let products = [];
@@ -12,6 +16,24 @@ export function initVitrine({ roboCall }) {
   const texts = new Map(); // id -> texto editado à mão
   let timer = null;
   let visible = false;
+  let view = readView();
+  let query = '';
+  let storeFilter = '';
+
+  function readView() {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'cards' ? 'cards' : 'lista';
+    } catch {
+      return 'lista';
+    }
+  }
+  function saveView(next) {
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // sem armazenamento local, a escolha vale só nesta tela
+    }
+  }
 
   const el = (tag, props = {}, ...children) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -24,6 +46,66 @@ export function initVitrine({ roboCall }) {
     node.hidden = !text;
     node.style.color = isError ? '#f87171' : '';
   };
+
+  async function removeProduct(p) {
+    try {
+      await roboCall(`/api/products?id=${encodeURIComponent(p.id)}`, { method: 'DELETE' });
+      selected.delete(p.id);
+      await loadProducts();
+    } catch (err) {
+      setMsg('vt-msg', err.message, true);
+    }
+  }
+
+  function productRow(p) {
+    const box = el('input', {
+      type: 'checkbox',
+      checked: selected.has(p.id),
+      onchange: () => {
+        if (box.checked) selected.add(p.id);
+        else selected.delete(p.id);
+        row.classList.toggle('selected', box.checked);
+        updateSendForm();
+      },
+    });
+    box.setAttribute('aria-label', `Selecionar ${p.title}`);
+    const sent = p.sentTo?.length ? `${p.sentTo.length} grupo(s)` : 'ainda não';
+    const row = el(
+      'li',
+      { className: `vt-row${selected.has(p.id) ? ' selected' : ''}` },
+      box,
+      p.image ? el('img', { src: p.image, alt: '', className: 'vt-img' }) : el('span', { className: 'vt-img vt-noimg' }),
+      el('div', { style: 'min-width:0' },
+        el('div', { className: 'vt-title', textContent: p.title }),
+        el('small', { textContent: STORE_LABEL[p.store] ?? p.store ?? '' }),
+      ),
+      el('div', { className: 'vt-cell-hide' },
+        el('small', { textContent: 'Preço' }),
+        el('div', { textContent: p.price ? `R$ ${p.price}` : '—' }),
+      ),
+      el('div', { className: 'vt-cell-hide' },
+        el('small', { textContent: 'Cupom' }),
+        el('div', { textContent: p.coupon ? `${p.coupon}${p.couponInfo ? ' · ' + p.couponInfo : ''}` : 'sem cupom' }),
+      ),
+      el('div', { className: 'vt-cell-hide' },
+        el('small', { textContent: 'Enviado' }),
+        el('div', { textContent: sent }),
+      ),
+      el('div', { className: 'btn-row', style: 'margin:0' },
+        el('button', {
+          type: 'button',
+          className: 'btn btn-sm btn-ghost',
+          textContent: 'Editar',
+          onclick: () => {
+            setView('cards');
+            document.querySelector(`[data-vt-id="${CSS.escape(p.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          },
+        }),
+        el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => removeProduct(p) }),
+      ),
+    );
+    return row;
+  }
 
   function productCard(p) {
     const box = el('input', {
@@ -105,29 +187,46 @@ export function initVitrine({ roboCall }) {
       el('label', { className: 'field' }, el('span', { textContent: 'Modelo do texto' }), tplSelect),
       el('label', { className: 'field' }, el('span', { textContent: 'Texto da oferta' }), area),
       el('div', { className: 'btn-row' },
-        el('button', {
-          type: 'button',
-          className: 'btn btn-sm btn-ghost',
-          textContent: 'Remover',
-          onclick: async () => {
-            try {
-              await roboCall(`/api/products?id=${encodeURIComponent(p.id)}`, { method: 'DELETE' });
-              selected.delete(p.id);
-              await loadProducts();
-            } catch (err) {
-              setMsg('vt-msg', err.message, true);
-            }
-          },
-        }),
+        el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => removeProduct(p) }),
       ),
     );
+    item.dataset.vtId = p.id;
     return item;
+  }
+
+  function matches(p) {
+    if (storeFilter && p.store !== storeFilter) return false;
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return [p.title, p.store, p.coupon].some((v) => String(v ?? '').toLowerCase().includes(q));
+  }
+
+  function renderSummary() {
+    $('vt-total').textContent = String(products.length);
+    $('vt-coupons').textContent = String(products.filter((p) => p.coupon).length);
+    $('vt-sent').textContent = String(products.filter((p) => p.sentTo?.length).length);
+  }
+
+  function renderToggle() {
+    $('vt-view-lista').classList.toggle('on', view === 'lista');
+    $('vt-view-cards').classList.toggle('on', view === 'cards');
   }
 
   function render() {
     $('vt-empty').hidden = products.length > 0;
-    $('vt-list').replaceChildren(...products.map(productCard));
+    renderSummary();
+    renderToggle();
+    const list = products.filter(matches);
+    const nodes = list.map((p) => (view === 'cards' ? productCard(p) : productRow(p)));
+    if (products.length && !list.length) nodes.push(el('li', { className: 'muted', textContent: 'Nenhum produto com esse filtro.' }));
+    $('vt-list').replaceChildren(...nodes);
     updateSendForm();
+  }
+
+  function setView(next) {
+    view = next;
+    saveView(next);
+    render();
   }
 
   function updateSendForm() {
@@ -177,6 +276,17 @@ export function initVitrine({ roboCall }) {
     timer = setInterval(() => { if (visible) refresh(); }, 6000);
   }
 
+  $('vt-search').addEventListener('input', (event) => {
+    query = event.target.value.trim();
+    render();
+  });
+  $('vt-store-filter').addEventListener('change', (event) => {
+    storeFilter = event.target.value;
+    render();
+  });
+  $('vt-view-lista').addEventListener('click', () => setView('lista'));
+  $('vt-view-cards').addEventListener('click', () => setView('cards'));
+
   $('vt-add').addEventListener('submit', async (event) => {
     event.preventDefault();
     const body = {
@@ -220,8 +330,8 @@ export function initVitrine({ roboCall }) {
   });
 
   return {
-    onView(view) {
-      visible = view === 'vitrine';
+    onView(viewName) {
+      visible = viewName === 'vitrine';
       if (visible) {
         refresh();
         startPolling();

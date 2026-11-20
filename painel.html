@@ -132,9 +132,10 @@
     .vt-summary .card b { display: block; font-size: 1.5rem; }
     .vt-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
     .vt-toolbar input[type=search] { flex: 1 1 220px; }
-    .vt-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-    .vt-seg button { background: var(--surface); color: var(--muted); border: 0; padding: 8px 14px; cursor: pointer; font: inherit; }
-    .vt-seg button.on { background: var(--accent); color: #fff; }
+    .vt-all { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 0.9rem; cursor: pointer; }
+    .vt-send-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .vt-main { min-width: 0; }
+    .vt-actions { margin: 0; }
     .vt-row { display: grid; grid-template-columns: auto 44px minmax(0, 2.4fr) 1fr 1fr 1fr auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
     .vt-row.selected { border-color: var(--accent); }
     .vt-row input[type=checkbox] { width: 18px; height: 18px; }
@@ -555,10 +556,7 @@
             <option value="shopee">Shopee</option>
             <option value="mercadolivre">Mercado Livre</option>
           </select>
-          <div class="vt-seg" role="group" aria-label="Modo de visualização">
-            <button type="button" id="vt-view-lista">Lista</button>
-            <button type="button" id="vt-view-cards">Cards</button>
-          </div>
+          <label class="vt-all"><input type="checkbox" id="vt-select-all"> Selecionar todos os visíveis</label>
         </div>
 
         <p class="form-msg" id="vt-msg" hidden></p>
@@ -566,7 +564,13 @@
         <ul id="vt-list" class="vt-list"></ul>
 
         <form class="card" id="vt-send" novalidate hidden style="margin-top:16px">
-          <h3>Enviar <span id="vt-send-count">0 produtos</span></h3>
+          <div class="vt-send-head">
+            <h3>Selecionados <span id="vt-send-count">0 produtos</span></h3>
+            <button class="btn btn-sm btn-ghost" type="button" id="vt-clear">Limpar seleção</button>
+          </div>
+          <label class="field"><span>Modelo para todos os selecionados</span>
+            <select id="vt-bulk-tpl"></select></label>
+          <ul id="vt-selected" class="vt-list"></ul>
           <fieldset class="field" style="border:0;padding:0">
             <legend class="muted">Para estes grupos</legend>
             <div id="vt-targets" class="group-list"></div>
@@ -574,8 +578,8 @@
           <div class="btn-row">
             <button class="btn btn-primary" type="submit">Enviar agora</button>
           </div>
-          <p class="form-msg" id="vt-send-msg" hidden></p>
         </form>
+        <p class="form-msg" id="vt-send-msg" hidden></p>
       </section>
 
       <!-- Grupos -->

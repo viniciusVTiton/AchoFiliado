@@ -1,10 +1,8 @@
 /**
  * Vitrine no painel: produtos guardados no robô, com cupom vinculado a cada um.
- * Você cadastra colando o link do produto, escolhe os produtos e envia para os grupos.
- * Dá para ver em lista (compacta) ou em cards (com cupom e texto editáveis).
- * Tudo passa pelo robô local (roboCall), como no restante do painel.
+ * Na lista você marca um ou mais produtos. Depois aparecem o modelo e a mensagem de cada um,
+ * e os grupos para enviar. Tudo passa pelo robô local (roboCall), como no restante do painel.
  */
-const VIEW_KEY = 'vt-view';
 const STORE_LABEL = { amazon: 'Amazon', shopee: 'Shopee', mercadolivre: 'Mercado Livre' };
 
 export function initVitrine({ roboCall }) {
@@ -13,27 +11,12 @@ export function initVitrine({ roboCall }) {
   let groups = [];
   let templateList = []; // modelos prontos e salvos (Modelos)
   const selected = new Set();
-  const texts = new Map(); // id -> texto editado à mão
+  const texts = new Map(); // id -> texto da oferta (editado à mão ou montado no modelo)
+  const tplChoice = new Map(); // id -> modelo escolhido ('' ou ausente = texto atual)
   let timer = null;
   let visible = false;
-  let view = readView();
   let query = '';
   let storeFilter = '';
-
-  function readView() {
-    try {
-      return localStorage.getItem(VIEW_KEY) === 'cards' ? 'cards' : 'lista';
-    } catch {
-      return 'lista';
-    }
-  }
-  function saveView(next) {
-    try {
-      localStorage.setItem(VIEW_KEY, next);
-    } catch {
-      // sem armazenamento local, a escolha vale só nesta tela
-    }
-  }
 
   const el = (tag, props = {}, ...children) => {
     const node = Object.assign(document.createElement(tag), props);
@@ -47,6 +30,17 @@ export function initVitrine({ roboCall }) {
     node.style.color = isError ? '#f87171' : '';
   };
 
+  function matches(p) {
+    if (storeFilter && p.store !== storeFilter) return false;
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return [p.title, p.store, p.coupon].some((v) => String(v ?? '').toLowerCase().includes(q));
+  }
+
+  function visibleProducts() {
+    return products.filter(matches);
+  }
+
   async function removeProduct(p) {
     try {
       await roboCall(`/api/products?id=${encodeURIComponent(p.id)}`, { method: 'DELETE' });
@@ -57,25 +51,41 @@ export function initVitrine({ roboCall }) {
     }
   }
 
+  // Monta o texto do produto no modelo escolhido; sem modelo, volta ao texto padrão.
+  async function applyTemplate(id, templateId) {
+    if (!templateId) {
+      texts.delete(id);
+      tplChoice.delete(id);
+      return;
+    }
+    const { text } = await roboCall(`/api/products/preview?id=${encodeURIComponent(id)}&template=${encodeURIComponent(templateId)}`);
+    texts.set(id, text);
+    tplChoice.set(id, templateId);
+  }
+
+  function setSelected(id, on) {
+    if (on) {
+      selected.add(id);
+      // Se já há um modelo escolhido para todos, o produto novo entra com ele.
+      const bulk = $('vt-bulk-tpl').value;
+      if (bulk) applyTemplate(id, bulk).then(renderSelected).catch((err) => setMsg('vt-send-msg', err.message, true));
+    } else {
+      selected.delete(id);
+    }
+    render();
+  }
+
   function productRow(p) {
-    const box = el('input', {
-      type: 'checkbox',
-      checked: selected.has(p.id),
-      onchange: () => {
-        if (box.checked) selected.add(p.id);
-        else selected.delete(p.id);
-        row.classList.toggle('selected', box.checked);
-        updateSendForm();
-      },
-    });
+    const on = selected.has(p.id);
+    const box = el('input', { type: 'checkbox', checked: on, onchange: () => setSelected(p.id, box.checked) });
     box.setAttribute('aria-label', `Selecionar ${p.title}`);
     const sent = p.sentTo?.length ? `${p.sentTo.length} grupo(s)` : 'ainda não';
     const row = el(
       'li',
-      { className: `vt-row${selected.has(p.id) ? ' selected' : ''}` },
+      { className: `vt-row${on ? ' selected' : ''}` },
       box,
       p.image ? el('img', { src: p.image, alt: '', className: 'vt-img' }) : el('span', { className: 'vt-img vt-noimg' }),
-      el('div', { style: 'min-width:0' },
+      el('div', { className: 'vt-main' },
         el('div', { className: 'vt-title', textContent: p.title }),
         el('small', { textContent: STORE_LABEL[p.store] ?? p.store ?? '' }),
       ),
@@ -91,35 +101,21 @@ export function initVitrine({ roboCall }) {
         el('small', { textContent: 'Enviado' }),
         el('div', { textContent: sent }),
       ),
-      el('div', { className: 'btn-row', style: 'margin:0' },
-        el('button', {
-          type: 'button',
-          className: 'btn btn-sm btn-ghost',
-          textContent: 'Editar',
-          onclick: () => {
-            setView('cards');
-            document.querySelector(`[data-vt-id="${CSS.escape(p.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          },
-        }),
+      el('div', { className: 'btn-row vt-actions' },
         el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => removeProduct(p) }),
       ),
     );
+    // Clicar na linha marca ou desmarca o produto (botões e campos continuam funcionando).
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('button, input, select, textarea, a')) return;
+      box.checked = !box.checked;
+      setSelected(p.id, box.checked);
+    });
     return row;
   }
 
+  // Cartão de um produto selecionado: modelo, mensagem, cupom e envio.
   function productCard(p) {
-    const box = el('input', {
-      type: 'checkbox',
-      checked: selected.has(p.id),
-      onchange: () => {
-        if (box.checked) selected.add(p.id);
-        else selected.delete(p.id);
-        item.classList.toggle('selected', box.checked);
-        updateSendForm();
-      },
-    });
-    box.setAttribute('aria-label', `Selecionar ${p.title}`);
-
     const couponCode = el('input', { type: 'text', value: p.coupon || '', placeholder: 'Código do cupom (ex.: SHO1125)', autocomplete: 'off' });
     const couponInfo = el('input', { type: 'text', value: p.couponInfo || '', placeholder: 'Condição (ex.: R$25 OFF acima de R$199)', autocomplete: 'off' });
     const saveCoupon = el('button', {
@@ -132,11 +128,12 @@ export function initVitrine({ roboCall }) {
             method: 'POST',
             body: { ...p, coupon: couponCode.value, couponInfo: couponInfo.value },
           });
-          texts.delete(p.id); // texto volta a sair com o cupom novo
-          setMsg('vt-msg', 'Cupom salvo.');
+          // Se há modelo escolhido, a mensagem é montada de novo com o cupom salvo.
+          await applyTemplate(p.id, tplChoice.get(p.id) ?? '');
+          setMsg('vt-send-msg', 'Cupom salvo.');
           await loadProducts();
         } catch (err) {
-          setMsg('vt-msg', err.message, true);
+          setMsg('vt-send-msg', err.message, true);
         }
       },
     });
@@ -144,20 +141,13 @@ export function initVitrine({ roboCall }) {
     const area = el('textarea', { rows: 4, value: texts.get(p.id) ?? p.text, oninput: () => texts.set(p.id, area.value) });
     area.setAttribute('aria-label', `Texto da oferta ${p.title}`);
 
-    // Escolher um modelo monta o texto do produto nele; "Texto atual" volta ao texto padrão.
     const tplSelect = el('select', {
       onchange: async () => {
-        if (!tplSelect.value) {
-          texts.delete(p.id);
-          area.value = p.text;
-          return;
-        }
         try {
-          const { text } = await roboCall(`/api/products/preview?id=${encodeURIComponent(p.id)}&template=${encodeURIComponent(tplSelect.value)}`);
-          area.value = text;
-          texts.set(p.id, text);
+          await applyTemplate(p.id, tplSelect.value);
+          renderSelected();
         } catch (err) {
-          setMsg('vt-msg', err.message, true);
+          setMsg('vt-send-msg', err.message, true);
         }
       },
     });
@@ -166,39 +156,30 @@ export function initVitrine({ roboCall }) {
       el('option', { value: '', textContent: 'Texto atual' }),
       ...templateList.map((t) => el('option', { value: t.id, textContent: t.name })),
     );
-    const sent = p.sentTo?.length ? ` · já enviado para ${p.sentTo.length} grupo(s)` : '';
+    tplSelect.value = tplChoice.get(p.id) ?? '';
 
+    const sent = p.sentTo?.length ? ` · já enviado para ${p.sentTo.length} grupo(s)` : '';
     const item = el(
       'li',
-      { className: `vt-item${selected.has(p.id) ? ' selected' : ''}` },
+      { className: 'vt-item selected' },
       el('div', { className: 'vt-head' },
-        box,
         p.image ? el('img', { src: p.image, alt: '', className: 'vt-img' }) : el('span', { className: 'vt-img vt-noimg' }),
         el('div', { className: 'vt-info' },
           el('strong', { textContent: p.title }),
-          el('div', { className: 'muted vt-meta', textContent: `${p.price ? 'R$ ' + p.price + ' · ' : ''}${p.store ?? ''}${sent}` }),
+          el('div', { className: 'muted vt-meta', textContent: `${p.price ? 'R$ ' + p.price + ' · ' : ''}${STORE_LABEL[p.store] ?? p.store ?? ''}${sent}` }),
         ),
+        el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Tirar da seleção', onclick: () => setSelected(p.id, false) }),
       ),
+      el('label', { className: 'field' }, el('span', { textContent: 'Modelo do texto' }), tplSelect),
+      el('label', { className: 'field' }, el('span', { textContent: 'Mensagem' }), area),
       el('div', { className: 'vt-coupon' },
         el('label', { className: 'field' }, el('span', { textContent: 'Cupom deste produto' }), couponCode),
         el('label', { className: 'field' }, el('span', { textContent: 'Condição do cupom' }), couponInfo),
         el('div', { className: 'btn-row' }, saveCoupon),
       ),
-      el('label', { className: 'field' }, el('span', { textContent: 'Modelo do texto' }), tplSelect),
-      el('label', { className: 'field' }, el('span', { textContent: 'Texto da oferta' }), area),
-      el('div', { className: 'btn-row' },
-        el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => removeProduct(p) }),
-      ),
     );
     item.dataset.vtId = p.id;
     return item;
-  }
-
-  function matches(p) {
-    if (storeFilter && p.store !== storeFilter) return false;
-    if (!query) return true;
-    const q = query.toLowerCase();
-    return [p.title, p.store, p.coupon].some((v) => String(v ?? '').toLowerCase().includes(q));
   }
 
   function renderSummary() {
@@ -207,32 +188,48 @@ export function initVitrine({ roboCall }) {
     $('vt-sent').textContent = String(products.filter((p) => p.sentTo?.length).length);
   }
 
-  function renderToggle() {
-    $('vt-view-lista').classList.toggle('on', view === 'lista');
-    $('vt-view-cards').classList.toggle('on', view === 'cards');
+  function renderSelectAll(list) {
+    const box = $('vt-select-all');
+    const n = list.filter((p) => selected.has(p.id)).length;
+    box.checked = list.length > 0 && n === list.length;
+    box.indeterminate = n > 0 && n < list.length;
   }
 
-  function render() {
-    $('vt-empty').hidden = products.length > 0;
-    renderSummary();
-    renderToggle();
-    const list = products.filter(matches);
-    const nodes = list.map((p) => (view === 'cards' ? productCard(p) : productRow(p)));
-    if (products.length && !list.length) nodes.push(el('li', { className: 'muted', textContent: 'Nenhum produto com esse filtro.' }));
-    $('vt-list').replaceChildren(...nodes);
-    updateSendForm();
-  }
-
-  function setView(next) {
-    view = next;
-    saveView(next);
-    render();
+  function renderSelected() {
+    const chosen = products.filter((p) => selected.has(p.id));
+    $('vt-selected').replaceChildren(...chosen.map(productCard));
   }
 
   function updateSendForm() {
     const n = selected.size;
     $('vt-send').hidden = n === 0;
     $('vt-send-count').textContent = `${n} produto${n === 1 ? '' : 's'}`;
+  }
+
+  function render() {
+    $('vt-empty').hidden = products.length > 0;
+    renderSummary();
+    const list = visibleProducts();
+    const nodes = list.map(productRow);
+    if (products.length && !list.length) nodes.push(el('li', { className: 'muted', textContent: 'Nenhum produto com esse filtro.' }));
+    $('vt-list').replaceChildren(...nodes);
+    renderSelectAll(list);
+    renderSelected();
+    updateSendForm();
+  }
+
+  // Lista de modelos no seletor "para todos"; mantém a escolha quando a lista não muda.
+  function renderBulkTemplates() {
+    const select = $('vt-bulk-tpl');
+    const signature = templateList.map((t) => `${t.id}:${t.name}`).join('|');
+    if (select.dataset.signature === signature) return;
+    const keep = select.value;
+    select.replaceChildren(
+      el('option', { value: '', textContent: 'Texto atual' }),
+      ...templateList.map((t) => el('option', { value: t.id, textContent: t.name })),
+    );
+    select.value = templateList.some((t) => t.id === keep) ? keep : '';
+    select.dataset.signature = signature;
   }
 
   function renderTargets() {
@@ -248,8 +245,9 @@ export function initVitrine({ roboCall }) {
     const fresh = (await roboCall('/api/products')).items ?? [];
     products = fresh;
     for (const id of [...selected]) if (!products.some((p) => p.id === id)) selected.delete(id);
-    // Não redesenha enquanto você digita em algum campo da lista.
-    if (!$('vt-list').contains(document.activeElement)) render();
+    // Não redesenha enquanto você digita em algum campo da lista ou dos selecionados.
+    const typing = [$('vt-list'), $('vt-selected')].some((node) => node.contains(document.activeElement));
+    if (!typing) render();
   }
 
   async function refresh() {
@@ -260,6 +258,7 @@ export function initVitrine({ roboCall }) {
         roboCall('/api/templates'),
       ]);
       templateList = tpl.templates ?? [];
+      renderBulkTemplates();
       $('vt-ext').textContent = ml.online
         ? 'Extensão do Chrome: conectada. Links do Mercado Livre saem na sua conta.'
         : 'Extensão do Chrome: desconectada. Abra o Chrome com a extensão AchoFiliado instalada.';
@@ -284,8 +283,30 @@ export function initVitrine({ roboCall }) {
     storeFilter = event.target.value;
     render();
   });
-  $('vt-view-lista').addEventListener('click', () => setView('lista'));
-  $('vt-view-cards').addEventListener('click', () => setView('cards'));
+  $('vt-select-all').addEventListener('change', (event) => {
+    for (const p of visibleProducts()) {
+      if (event.target.checked) selected.add(p.id);
+      else selected.delete(p.id);
+    }
+    render();
+  });
+  $('vt-clear').addEventListener('click', () => {
+    selected.clear();
+    tplChoice.clear();
+    texts.clear();
+    $('vt-bulk-tpl').value = '';
+    render();
+  });
+  // Um modelo para todos os selecionados de uma vez.
+  $('vt-bulk-tpl').addEventListener('change', async (event) => {
+    const templateId = event.target.value;
+    try {
+      await Promise.all([...selected].map((id) => applyTemplate(id, templateId)));
+      renderSelected();
+    } catch (err) {
+      setMsg('vt-send-msg', err.message, true);
+    }
+  });
 
   $('vt-add').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -322,7 +343,9 @@ export function initVitrine({ roboCall }) {
       if (blocked.length) text += ` ${blocked.length} não enviado(s) pelo limite de envios.`;
       setMsg('vt-send-msg', text, blocked.length > 0);
       selected.clear();
+      tplChoice.clear();
       texts.clear();
+      $('vt-bulk-tpl').value = '';
       await loadProducts();
     } catch (err) {
       setMsg('vt-send-msg', err.message, true);

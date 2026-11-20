@@ -59,14 +59,14 @@ export function initEspelho({ roboCall }) {
   let rules = [];
   let templates = [];
   let tags = {};
-  let targetEvery = {}; // frequência de cada grupo de destino da regra em edição (0 = na hora)
+  let sourceEvery = {}; // frequência de cada grupo de origem da regra em edição (0 = todas as ofertas)
   const FREQ_OPTIONS = [
-    [0, 'Na hora'],
-    [5, 'A cada 5 min'],
-    [10, 'A cada 10 min'],
-    [15, 'A cada 15 min'],
-    [30, 'A cada 30 min'],
-    [60, 'A cada 1 hora'],
+    [0, 'Todas as ofertas'],
+    [5, '1 oferta a cada 5 min'],
+    [10, '1 oferta a cada 10 min'],
+    [15, '1 oferta a cada 15 min'],
+    [30, '1 oferta a cada 30 min'],
+    [60, '1 oferta por hora'],
   ];
   let editing = null; // regra em edição
   let editingTpl = null; // modelo em edição (página Modelos)
@@ -185,7 +185,7 @@ export function initEspelho({ roboCall }) {
             : null,
         );
         label.dataset.search = g.name; // o filtro procura só pelo nome do grupo
-        if (name === 'target') label.append(frequencySelect(g, input));
+        if (name === 'source') label.append(frequencySelect(g, input));
         return label;
       }),
     );
@@ -195,34 +195,34 @@ export function initEspelho({ roboCall }) {
     applyFilter();
   }
 
-  // Frequência de um grupo de destino: aparece só quando o grupo está marcado.
+  // Frequência de um grupo de origem: aparece só quando o grupo está marcado.
   function frequencySelect(group, input) {
     const select = el('select', {
       className: 'freq',
       hidden: !input.checked,
       onchange: () => {
-        targetEvery[group.id] = Number(select.value) || 0;
+        sourceEvery[group.id] = Number(select.value) || 0;
       },
     }, ...FREQ_OPTIONS.map(([value, label]) => el('option', { value: String(value), textContent: label })));
-    select.setAttribute('aria-label', `Frequência para ${group.name}`);
-    select.value = String(targetEvery[group.id] ?? 0);
+    select.setAttribute('aria-label', `Quantas ofertas pegar de ${group.name}`);
+    select.value = String(sourceEvery[group.id] ?? 0);
     input.addEventListener('change', () => {
       select.hidden = !input.checked;
     });
     return select;
   }
 
-  // Põe na tela a frequência guardada de cada grupo marcado (ao abrir uma regra ou limpar o formulário).
+  // Põe na tela a frequência guardada de cada origem marcada (ao abrir uma regra ou limpar o formulário).
   function syncFrequencies() {
-    document.querySelectorAll('#r-targets select.freq').forEach((select) => {
+    document.querySelectorAll('#r-sources select.freq').forEach((select) => {
       const input = select.closest('label').querySelector('input');
-      select.value = String(targetEvery[input.value] ?? 0);
+      select.value = String(sourceEvery[input.value] ?? 0);
       select.hidden = !input.checked;
     });
   }
 
   function everyLabel(rule, group) {
-    const minutes = Number(rule.targetEvery?.[group]);
+    const minutes = Number(rule.sourceEvery?.[group]);
     return FREQ_OPTIONS.find(([value]) => value === minutes && value > 0)?.[1] ?? '';
   }
 
@@ -319,8 +319,8 @@ export function initEspelho({ roboCall }) {
             el('strong', { textContent: r.name || 'Sem nome' }),
             el('span', { className: `badge ${r.enabled ? 'on' : 'off'}`, textContent: `${r.enabled ? 'Ativa' : 'Pausada'}${hours}${r.testMode ? ' · MODO TESTE' : ''}` }),
           ),
-          el('p', { className: 'muted', textContent: `De: ${r.sources.map(groupName).join(', ')}` }),
-          el('p', { className: 'muted', textContent: `Para: ${r.targets.map((g) => groupName(g) + (everyLabel(r, g) ? ` (${everyLabel(r, g)})` : '')).join(', ')}` }),
+          el('p', { className: 'muted', textContent: `De: ${r.sources.map((g) => groupName(g) + (everyLabel(r, g) ? ` (${everyLabel(r, g)})` : '')).join(', ')}` }),
+          el('p', { className: 'muted', textContent: `Para: ${r.targets.map(groupName).join(', ')}` }),
           el('p', { className: 'muted small', textContent: `Não repete o mesmo produto no mesmo grupo por ${r.repeatHours ?? 24} hora(s)` }),
           filters ? el('p', { className: 'muted small', textContent: filters }) : null,
           el('div', { className: 'btn-row' },
@@ -432,7 +432,7 @@ export function initEspelho({ roboCall }) {
     renderReplacements([]);
     setChecks('source', []);
     setChecks('target', []);
-    targetEvery = {};
+    sourceEvery = {};
     syncFrequencies();
     $('r-filter').value = '';
     applyFilter();
@@ -465,7 +465,7 @@ export function initEspelho({ roboCall }) {
     $('r-name').value = r.name ?? '';
     setChecks('source', r.sources);
     setChecks('target', r.targets);
-    targetEvery = { ...(r.targetEvery ?? {}) };
+    sourceEvery = { ...(r.sourceEvery ?? {}) };
     syncFrequencies();
     const stores = r.stores ?? [];
     $('r-st-ml').checked = stores.includes('mercadolivre');
@@ -545,8 +545,8 @@ export function initEspelho({ roboCall }) {
       repeatHours: Number($('r-repeat').value) || 24,
       nicho: $('r-nicho').value.trim(),
     };
-    // Só grupos de destino marcados, com frequência diferente de "na hora".
-    rule.targetEvery = Object.fromEntries(rule.targets.filter((g) => targetEvery[g] > 0).map((g) => [g, targetEvery[g]]));
+    // Só origens marcadas, com frequência diferente de "todas as ofertas".
+    rule.sourceEvery = Object.fromEntries(rule.sources.filter((g) => sourceEvery[g] > 0).map((g) => [g, sourceEvery[g]]));
     const problem = !rule.sources.length
       ? 'Escolha pelo menos um grupo de origem.'
       : !rule.targets.length

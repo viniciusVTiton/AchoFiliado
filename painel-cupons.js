@@ -10,6 +10,15 @@ const STORES = [
 ];
 const LABEL = Object.fromEntries(STORES);
 
+/** "vale até 23:59 de 23/11" (cada cupom vale até o fim do dia). */
+function validity(c) {
+  if (!c.expiresAt) return '';
+  const d = new Date(c.expiresAt);
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+  const dia = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' });
+  return `vale até ${hora} de ${dia}`;
+}
+
 export function initCupons({ roboCall }) {
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, ...kids) => {
@@ -37,7 +46,7 @@ export function initCupons({ roboCall }) {
           el('div', { className: 'cp-code', textContent: c.code }),
           el('small', {
             className: 'muted',
-            textContent: [LABEL[c.store] ?? 'Qualquer loja', c.condition, sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
+            textContent: [LABEL[c.store] ?? 'Qualquer loja', c.condition, validity(c), sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
           }),
           el('div', { className: 'btn-row' },
             el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),

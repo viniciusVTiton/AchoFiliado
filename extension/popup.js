@@ -53,6 +53,21 @@ if (!product?.isProduct) {
   }
   $('add').hidden = false;
   $('add').disabled = !status?.mlTag;
+  // Cupons que ainda valem hoje (seção Cupons do painel): os do Mercado Livre e os de qualquer loja.
+  try {
+    const { coupons = [] } = await fetch(`${SERVER}/api/coupons`).then((r) => r.json());
+    const usable = coupons.filter((c) => !c.store || c.store === 'mercadolivre');
+    for (const c of usable) {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      const info = c.info ?? c.condition;
+      opt.textContent = info ? `${c.code} · ${info}` : c.code;
+      $('coupon').append(opt);
+    }
+    $('coupon-box').hidden = usable.length === 0;
+  } catch {
+    // robô sem a seção Cupons: segue sem o seletor
+  }
 }
 
 $('add').addEventListener('click', async () => {
@@ -66,11 +81,11 @@ $('add').addEventListener('click', async () => {
     const res = await fetch(`${SERVER}/api/products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...product, store: 'mercadolivre', affiliateUrl: link.shortUrl }),
+      body: JSON.stringify({ ...product, store: 'mercadolivre', affiliateUrl: link.shortUrl, couponId: $('coupon').value }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? `Erro ${res.status}`);
-    say('msg', `Adicionado à Vitrine com o seu link ${link.shortUrl}`, 'ok');
+    say('msg', `Adicionado à Vitrine com o seu link ${link.shortUrl}${data.product?.coupon ? ` e o cupom ${data.product.coupon}` : ''}`, 'ok');
     btn.textContent = 'Adicionado ✓';
   } catch (e) {
     say('msg', e.message, 'bad');

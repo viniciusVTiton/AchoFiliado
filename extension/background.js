@@ -2,7 +2,7 @@
  * Fica ligado ao robô (http://localhost:3000) esperando pedidos de link do Mercado Livre.
  * Cada pedido é atendido dentro de uma aba do Mercado Livre (onde você está logado).
  */
-import { mlCreateLink } from './ml.js';
+import { mlCreateLink, mlSyncCoupons } from './ml.js';
 
 export const SERVER = 'http://localhost:3000';
 const ML_HOME = 'https://www.mercadolivre.com.br/afiliados/linkbuilder';
@@ -46,6 +46,27 @@ export async function generateLink(productUrl, tag, tabId) {
   return result?.result ?? { error: 'A aba do Mercado Livre não respondeu' };
 }
 
+/** Abre a página de cupons em segundo plano, roda a leitura e fecha a aba. */
+async function syncCoupons(codes) {
+  const tab = await chrome.tabs.create({ url: 'https://www.mercadolivre.com.br/cupons', active: false });
+  try {
+    await new Promise((resolve) => {
+      const done = (id, info) => {
+        if (id === tab.id && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(done);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(done);
+      setTimeout(resolve, 25_000);
+    });
+    const [r] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: 'MAIN', func: mlSyncCoupons, args: [codes] });
+    return r?.result ?? { error: 'A página de cupons não respondeu' };
+  } finally {
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
 async function post(path, body) {
   return fetch(`${SERVER}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 }
@@ -61,6 +82,17 @@ async function loop() {
       if (!res.ok) break;
       const { job } = await res.json();
       if (!job) continue;
+      // Tarefa de cupons: lê (e ativa) os seus cupons numa aba da página de cupons.
+      if (job.kind === 'coupons') {
+        let result;
+        try {
+          result = await syncCoupons(job.codes ?? []);
+        } catch (e) {
+          result = { error: e.message };
+        }
+        await post('/api/ml/result', { id: job.id, data: result.error ? undefined : result, error: result.error ?? '' });
+        continue;
+      }
       let out;
       if (!tag) out = { error: 'Etiqueta do Mercado Livre (ML_TAG) não configurada no robô' };
       else {

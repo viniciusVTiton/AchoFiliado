@@ -78,3 +78,83 @@ export function readMlProduct() {
     url: location.origin + location.pathname,
   };
 }
+
+/**
+ * Roda na página https://www.mercadolivre.com.br/cupons (mundo MAIN).
+ * 1) Coloca na sua conta os códigos pedidos (o mesmo que "Inserir código").
+ * 2) Lê os seus cupons ativos: desconto, compra mínima, limite, validade e os produtos válidos.
+ * Precisa ser autocontida: o Chrome copia só o corpo da função para a página.
+ */
+export async function mlSyncCoupons(codes) {
+  const token = document.querySelector('meta[name="csrf-token"]')?.content;
+  if (!token) return { error: 'Não achei a chave de segurança da página de cupons. Faça login no Mercado Livre.' };
+
+  // A lista de cupons ativos vem como JSON dentro do HTML da página ("_n.ctx.r={...}").
+  async function readActive() {
+    const html = await fetch('/cupons/filter?status=active', { credentials: 'include' }).then((r) => r.text());
+    const at = html.indexOf('_n.ctx.r=');
+    if (at < 0) return null;
+    const start = html.indexOf('{', at);
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < html.length; i++) {
+      const ch = html[i];
+      if (ch === '"') {
+        i++;
+        while (i < html.length && html[i] !== '"') {
+          if (html[i] === '\\') i++;
+          i++;
+        }
+        continue;
+      }
+      if (ch === '{') depth++;
+      else if (ch === '}' && --depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    let state;
+    try {
+      state = JSON.parse(html.slice(start, end + 1));
+    } catch {
+      return null;
+    }
+    const list = state?.appProps?.pageProps?.filteredCouponsData?.coupons ?? [];
+    return list.map((c) => ({
+      code: String(c.code || c.inputCode || '').toUpperCase(),
+      campaignId: String(c.campaignId ?? ''),
+      title: c.title?.text ?? '',
+      min: c.amount?.minAmount ?? '',
+      cap: c.amount?.capAmount ?? '',
+      expiresAt: c.futureCouponInfo?.expiration_date ?? '',
+      expiresText: c.expirationDate?.text ?? '',
+      productsUrl: c.action?.type === 'link' ? c.action?.value ?? '' : '',
+      items: (c.items ?? []).slice(0, 6).map((it) => ({ title: it.altText ?? '', image: it.imageUrl ?? '' })),
+      status: c.status?.id ?? '',
+    }));
+  }
+
+  let coupons = await readActive();
+  if (!coupons) return { error: 'Não consegui ler a lista de cupons (a página mudou?)' };
+
+  // Só coloca na conta os códigos que ainda não estão ativos (o mesmo que "Inserir código").
+  const have = new Set(coupons.map((c) => c.code));
+  const inserted = [];
+  for (const code of (codes ?? []).filter((c) => !have.has(String(c).toUpperCase()))) {
+    try {
+      const res = await fetch('/cupons/api/input-code', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'x-csrf-token': token },
+        body: JSON.stringify({ coupon_input_code: code }),
+      });
+      const data = await res.json().catch(() => null);
+      const msg = data?.responseMessage ?? {};
+      inserted.push({ code, ok: res.ok && msg.type !== 'error', message: String(msg.text ?? '').slice(0, 160) });
+    } catch {
+      inserted.push({ code, ok: false, message: 'Sem conexão com o Mercado Livre' });
+    }
+  }
+  if (inserted.some((r) => r.ok)) coupons = (await readActive()) ?? coupons;
+  return { inserted, coupons };
+}

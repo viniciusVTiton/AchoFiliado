@@ -48,7 +48,13 @@ export function initCupons({ roboCall }) {
             className: 'muted',
             textContent: [LABEL[c.store] ?? 'Qualquer loja', c.info ?? c.condition, validity(c), sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
           }),
+          c.official
+            ? el('small', { className: 'muted', textContent: `✓ conferido no Mercado Livre${c.official.items?.length ? ' · ex.: ' + c.official.items.slice(0, 2).map((i) => i.title.slice(0, 40)).join('; ') : ''}` })
+            : null,
           el('div', { className: 'btn-row' },
+            c.official?.productsUrl
+              ? el('a', { className: 'btn btn-sm btn-ghost', href: c.official.productsUrl, target: '_blank', rel: 'noopener', textContent: 'Produtos válidos' })
+              : null,
             el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),
             el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Editar', onclick: () => openEdit(c) }),
             el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => remove(c) }),
@@ -189,6 +195,24 @@ export function initCupons({ roboCall }) {
       setMsg('cp-msg', err.message, true);
     }
   }
+
+  // Atualiza com o Mercado Livre: a extensão ativa os códigos novos na sua conta e lê os dados oficiais.
+  $('cp-ml-sync').addEventListener('click', async () => {
+    $('cp-ml-sync').disabled = true;
+    setMsg('cp-ml-msg', 'Consultando o Mercado Livre pela extensão…');
+    try {
+      const r = await roboCall('/api/coupons/ml-sync', { method: 'POST', body: {} });
+      const parts = [`${r.updated} cupom(s) atualizado(s) e ${r.created} novo(s) com os dados do Mercado Livre.`];
+      if (r.activated?.length) parts.push(`Ativados na sua conta: ${r.activated.join(', ')}.`);
+      if (r.notFound?.length) parts.push(`Não estão na sua conta do Mercado Livre: ${r.notFound.join(', ')}.`);
+      setMsg('cp-ml-msg', parts.join('\n'));
+      await load();
+    } catch (err) {
+      setMsg('cp-ml-msg', err.message, true);
+    } finally {
+      $('cp-ml-sync').disabled = false;
+    }
+  });
 
   $('cp-identify-form').addEventListener('submit', async (event) => {
     event.preventDefault();

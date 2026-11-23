@@ -675,6 +675,30 @@
         <p class="muted" id="cp-empty" hidden>Nenhum cupom ainda. Cole uma mensagem acima.</p>
         <ul class="cp-list" id="cp-list"></ul>
 
+        <form class="card" id="cp-edit-form" novalidate hidden style="margin-top:16px">
+          <h3 id="cp-edit-title">Editar cupom</h3>
+          <div class="field-row">
+            <label class="field"><span>Código</span><input id="cp-edit-code" type="text" autocomplete="off"></label>
+            <label class="field"><span>Loja</span>
+              <select id="cp-edit-store">
+                <option value="">Qualquer loja</option>
+                <option value="mercadolivre">Mercado Livre</option>
+                <option value="amazon">Amazon</option>
+                <option value="shopee">Shopee</option>
+              </select></label>
+          </div>
+          <label class="field"><span>Condição</span><input id="cp-edit-cond" type="text" autocomplete="off" placeholder="Ex.: 10% OFF, limitado a R$200"></label>
+          <fieldset class="field" style="border:0;padding:0">
+            <legend class="muted">Produtos da Vitrine que usam este cupom</legend>
+            <div id="cp-edit-products" class="group-list"></div>
+          </fieldset>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="cp-edit-btn">Salvar</button>
+            <button class="btn btn-ghost" type="button" id="cp-edit-cancel">Fechar</button>
+          </div>
+          <p class="form-msg" id="cp-edit-msg" hidden></p>
+        </form>
+
         <form class="card" id="cp-send-form" novalidate hidden style="margin-top:16px">
           <h3 id="cp-send-title">Enviar cupom</h3>
           <label class="field"><span>Mensagem</span>

@@ -123,9 +123,12 @@ export function initVitrine({ roboCall }) {
     const couponPick = el('select', {
       onchange: () => {
         const c = couponList.find((x) => x.id === couponPick.value);
-        if (!c) return;
-        couponCode.value = c.code;
-        couponInfo.value = c.condition ?? '';
+        if (c) {
+          couponCode.value = c.code;
+          couponInfo.value = c.condition ?? '';
+        }
+        // Já salva: a mensagem do produto passa a sair com o cupom escolhido.
+        saveCoupon.click();
       },
     });
     couponPick.setAttribute('aria-label', `Cupom da seção Cupons para ${p.title}`);

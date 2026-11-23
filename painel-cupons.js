@@ -50,6 +50,7 @@ export function initCupons({ roboCall }) {
           }),
           el('div', { className: 'btn-row' },
             el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),
+            el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Editar', onclick: () => openEdit(c) }),
             el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => remove(c) }),
           ),
         );
@@ -121,6 +122,57 @@ export function initCupons({ roboCall }) {
     }
     $('cp-send-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // Editar: código, loja, condição e os produtos da Vitrine que usam o cupom.
+  let editingId = null;
+  async function openEdit(c) {
+    editingId = c.id;
+    $('cp-edit-form').hidden = false;
+    $('cp-edit-title').textContent = `Editar o cupom ${c.code}`;
+    $('cp-edit-code').value = c.code;
+    $('cp-edit-store').value = c.store || '';
+    $('cp-edit-cond').value = c.condition || '';
+    setMsg('cp-edit-msg', '');
+    try {
+      const { items = [] } = await roboCall('/api/products');
+      $('cp-edit-products').replaceChildren(
+        ...items.map((p) =>
+          el('label', {},
+            el('input', { type: 'checkbox', name: 'cp-prod', value: p.id, checked: p.couponId === c.id }),
+            ` ${p.title}${p.couponId && p.couponId !== c.id ? ' (já usa outro cupom)' : ''}`,
+          ),
+        ),
+      );
+      if (!items.length) $('cp-edit-products').append(el('p', { className: 'muted', textContent: 'Nenhum produto na Vitrine.' }));
+    } catch (err) {
+      setMsg('cp-edit-msg', err.message, true);
+    }
+    $('cp-edit-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('cp-edit-cancel').addEventListener('click', () => {
+    editingId = null;
+    $('cp-edit-form').hidden = true;
+  });
+
+  $('cp-edit-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    $('cp-edit-btn').disabled = true;
+    try {
+      await roboCall('/api/coupons/update', {
+        method: 'POST',
+        body: { id: editingId, code: $('cp-edit-code').value, store: $('cp-edit-store').value, condition: $('cp-edit-cond').value },
+      });
+      const productIds = [...document.querySelectorAll('input[name="cp-prod"]:checked')].map((i) => i.value);
+      const { linked } = await roboCall('/api/coupons/products', { method: 'POST', body: { id: editingId, productIds } });
+      setMsg('cp-edit-msg', `Cupom salvo. ${linked} produto${linked === 1 ? '' : 's'} com este cupom.`);
+      await load();
+    } catch (err) {
+      setMsg('cp-edit-msg', err.message, true);
+    } finally {
+      $('cp-edit-btn').disabled = false;
+    }
+  });
 
   async function remove(c) {
     if (!confirm(`Remover o cupom ${c.code}?`)) return;

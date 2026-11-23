@@ -46,7 +46,7 @@ export function initCupons({ roboCall }) {
           el('div', { className: 'cp-code', textContent: c.code }),
           el('small', {
             className: 'muted',
-            textContent: [LABEL[c.store] ?? 'Qualquer loja', c.condition, validity(c), sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
+            textContent: [LABEL[c.store] ?? 'Qualquer loja', c.info ?? c.condition, validity(c), sent ? `enviado ${sent}×` : ''].filter(Boolean).join(' · '),
           }),
           el('div', { className: 'btn-row' },
             el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),
@@ -132,6 +132,7 @@ export function initCupons({ roboCall }) {
     $('cp-edit-code').value = c.code;
     $('cp-edit-store').value = c.store || '';
     $('cp-edit-cond').value = c.condition || '';
+    $('cp-edit-disc').value = c.discount ?? '';
     setMsg('cp-edit-msg', '');
     try {
       const { items = [] } = await roboCall('/api/products');
@@ -161,7 +162,7 @@ export function initCupons({ roboCall }) {
     try {
       await roboCall('/api/coupons/update', {
         method: 'POST',
-        body: { id: editingId, code: $('cp-edit-code').value, store: $('cp-edit-store').value, condition: $('cp-edit-cond').value },
+        body: { id: editingId, code: $('cp-edit-code').value, store: $('cp-edit-store').value, condition: $('cp-edit-cond').value, discount: $('cp-edit-disc').value },
       });
       const productIds = [...document.querySelectorAll('input[name="cp-prod"]:checked')].map((i) => i.value);
       const { linked } = await roboCall('/api/coupons/products', { method: 'POST', body: { id: editingId, productIds } });
@@ -209,7 +210,7 @@ export function initCupons({ roboCall }) {
     try {
       await roboCall('/api/coupons', {
         method: 'POST',
-        body: { code: $('cp-new-code').value, store: $('cp-new-store').value, condition: $('cp-new-cond').value },
+        body: { code: $('cp-new-code').value, store: $('cp-new-store').value, condition: $('cp-new-cond').value, discount: $('cp-new-disc').value },
       });
       event.target.reset();
       setMsg('cp-msg', 'Cupom guardado.');

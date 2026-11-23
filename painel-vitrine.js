@@ -125,7 +125,7 @@ export function initVitrine({ roboCall }) {
         const c = couponList.find((x) => x.id === couponPick.value);
         if (c) {
           couponCode.value = c.code;
-          couponInfo.value = c.condition ?? '';
+          couponInfo.value = c.info ?? c.condition ?? '';
         }
         // Já salva: a mensagem do produto passa a sair com o cupom escolhido.
         saveCoupon.click();
@@ -134,7 +134,7 @@ export function initVitrine({ roboCall }) {
     couponPick.setAttribute('aria-label', `Cupom da seção Cupons para ${p.title}`);
     couponPick.append(
       el('option', { value: '', textContent: 'Sem vínculo (digitar abaixo)' }),
-      ...couponList.map((c) => el('option', { value: c.id, textContent: `${c.code}${c.condition ? ' · ' + c.condition : ''}` })),
+      ...couponList.map((c) => el('option', { value: c.id, textContent: `${c.code}${(c.info ?? c.condition) ? ' · ' + (c.info ?? c.condition) : ''}` })),
     );
     couponPick.value = p.couponId ?? '';
     // Se você mudar o código à mão, o vínculo com a seção Cupons sai.

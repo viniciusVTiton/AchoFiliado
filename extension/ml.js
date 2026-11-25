@@ -158,3 +158,38 @@ export async function mlSyncCoupons(codes) {
   if (inserted.some((r) => r.ok)) coupons = (await readActive()) ?? coupons;
   return { inserted, coupons };
 }
+
+/**
+ * Lê os produtos de uma página de lista do Mercado Livre (ex.: produtos válidos de um cupom).
+ * Ignora anúncios patrocinados (links de clique) e repetidos.
+ */
+export function readMlListing(limit) {
+  // O Mercado Livre às vezes pede uma verificação de segurança: quem resolve é você, no Chrome.
+  if (/captcha|verification/i.test(location.pathname)) return { blocked: true };
+  const seen = new Set();
+  const out = [];
+  const amount = (root, sel) => {
+    const el = root.querySelector(sel);
+    if (!el) return '';
+    const f = el.querySelector('.andes-money-amount__fraction')?.textContent?.trim() ?? '';
+    const c = el.querySelector('.andes-money-amount__cents')?.textContent?.trim() ?? '';
+    return f ? (c ? `${f},${c}` : f) : '';
+  };
+  for (const card of document.querySelectorAll('.poly-card')) {
+    const a = card.querySelector('a.poly-component__title') ?? card.querySelector('a[href]');
+    if (!a) continue;
+    const url = a.href.split('#')[0].split('?')[0];
+    if (!/^https:\/\/(www|produto)\.mercadolivre\.com\.br\//.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    const img = card.querySelector('img');
+    out.push({
+      title: a.textContent.trim(),
+      url,
+      price: amount(card, '.poly-price__current'),
+      oldPrice: amount(card, '.andes-money-amount--previous'),
+      image: img?.getAttribute('data-src') || img?.src || '',
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}

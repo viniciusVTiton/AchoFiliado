@@ -55,6 +55,9 @@ export function initCupons({ roboCall }) {
             c.official?.productsUrl
               ? el('a', { className: 'btn btn-sm btn-ghost', href: c.official.productsUrl, target: '_blank', rel: 'noopener', textContent: 'Produtos válidos' })
               : null,
+            c.official?.productsUrl
+              ? el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Montar lista', onclick: () => openList(c) })
+              : null,
             el('button', { type: 'button', className: 'btn btn-sm btn-primary', textContent: 'Enviar', onclick: () => openSend(c) }),
             el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Editar', onclick: () => openEdit(c) }),
             el('button', { type: 'button', className: 'btn btn-sm btn-ghost', textContent: 'Remover', onclick: () => remove(c) }),
@@ -114,14 +117,17 @@ export function initCupons({ roboCall }) {
     if (!mine.length) $('cp-targets').append(el('p', { className: 'muted', textContent: 'Conecte o WhatsApp para escolher os grupos.' }));
   }
 
-  async function openSend(c) {
+  async function openSend(c, presetText = '') {
     selectedId = c.id;
     renderList();
     $('cp-send-form').hidden = false;
     $('cp-send-title').textContent = `Enviar o cupom ${c.code}`;
     setMsg('cp-send-msg', '');
     try {
-      const [{ text }] = await Promise.all([roboCall(`/api/coupons/message?id=${encodeURIComponent(c.id)}`), loadTargets()]);
+      const [{ text }] = await Promise.all([
+        presetText ? Promise.resolve({ text: presetText }) : roboCall(`/api/coupons/message?id=${encodeURIComponent(c.id)}`),
+        loadTargets(),
+      ]);
       $('cp-send-text').value = text;
     } catch (err) {
       setMsg('cp-send-msg', err.message, true);
@@ -178,6 +184,42 @@ export function initCupons({ roboCall }) {
       setMsg('cp-edit-msg', err.message, true);
     } finally {
       $('cp-edit-btn').disabled = false;
+    }
+  });
+
+  // Montar lista: procura produtos válidos do cupom pelas palavras e leva a mensagem para o envio.
+  let listingId = null;
+  function openList(c) {
+    listingId = c.id;
+    $('cp-list-form').hidden = false;
+    $('cp-list-title').textContent = `Montar lista do cupom ${c.code}`;
+    setMsg('cp-list-msg', '');
+    $('cp-list-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('cp-list-words').focus();
+  }
+
+  $('cp-list-cancel').addEventListener('click', () => {
+    listingId = null;
+    $('cp-list-form').hidden = true;
+  });
+
+  $('cp-list-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const keywords = $('cp-list-words').value.trim();
+    if (!keywords) return setMsg('cp-list-msg', 'Escreva o que procurar, ex.: notebook, playstation 5.', true);
+    $('cp-list-btn').disabled = true;
+    setMsg('cp-list-msg', 'Procurando nos produtos do cupom e gerando os seus links… (pode levar 1 a 2 minutos)');
+    try {
+      const r = await roboCall('/api/coupons/build-list', { method: 'POST', body: { id: listingId, keywords, perKeyword: $('cp-list-per').value } });
+      const resumo = r.found.map((f) => `${f.keyword}: ${f.count}`).join(' · ');
+      if (!r.count) return setMsg('cp-list-msg', `Nenhum produto válido achado (${resumo}). Tente outras palavras.`, true);
+      setMsg('cp-list-msg', `${r.count} produto(s) na lista (${resumo}). Confira a mensagem abaixo e escolha os grupos.`);
+      const coupon = coupons.find((x) => x.id === listingId);
+      await openSend(coupon, r.text);
+    } catch (err) {
+      setMsg('cp-list-msg', err.message, true);
+    } finally {
+      $('cp-list-btn').disabled = false;
     }
   });
 

@@ -680,6 +680,20 @@
         <p class="muted" id="cp-empty" hidden>Nenhum cupom ainda. Cole uma mensagem acima.</p>
         <ul class="cp-list" id="cp-list"></ul>
 
+        <form class="card" id="cp-list-form" novalidate hidden style="margin-top:16px">
+          <h3 id="cp-list-title">Montar lista do cupom</h3>
+          <p class="muted">A extensão procura nos produtos válidos do cupom, gera o seu link de cada um e monta a mensagem.</p>
+          <div class="field-row">
+            <label class="field"><span>O que procurar</span><input id="cp-list-words" type="text" autocomplete="off" placeholder="Ex.: computador, notebook, playstation 5"></label>
+            <label class="field"><span>Produtos por item</span><input id="cp-list-per" type="number" min="1" max="10" value="3"></label>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" type="submit" id="cp-list-btn">Montar lista</button>
+            <button class="btn btn-ghost" type="button" id="cp-list-cancel">Fechar</button>
+          </div>
+          <p class="form-msg" id="cp-list-msg" hidden></p>
+        </form>
+
         <form class="card" id="cp-edit-form" novalidate hidden style="margin-top:16px">
           <h3 id="cp-edit-title">Editar cupom</h3>
           <div class="field-row">

@@ -207,13 +207,19 @@ export function initCupons({ roboCall }) {
     event.preventDefault();
     const keywords = $('cp-list-words').value.trim();
     if (!keywords) return setMsg('cp-list-msg', 'Escreva o que procurar, ex.: notebook, playstation 5.', true);
+    const mode = $('cp-list-mode').value;
+    if (mode === 'mlList' && !confirm('A lista será criada e publicada no seu perfil de afiliado do Mercado Livre (fica pública). Continuar?')) return;
     $('cp-list-btn').disabled = true;
-    setMsg('cp-list-msg', 'Procurando nos produtos do cupom e gerando os seus links… (pode levar 1 a 2 minutos)');
+    setMsg('cp-list-msg', mode === 'mlList'
+      ? 'Procurando nos produtos do cupom e criando a lista no Mercado Livre… (pode levar 1 a 2 minutos)'
+      : 'Procurando nos produtos do cupom e gerando os seus links… (pode levar 1 a 2 minutos)');
     try {
-      const r = await roboCall('/api/coupons/build-list', { method: 'POST', body: { id: listingId, keywords, perKeyword: $('cp-list-per').value } });
+      const r = await roboCall('/api/coupons/build-list', { method: 'POST', body: { id: listingId, keywords, perKeyword: $('cp-list-per').value, mode } });
       const resumo = r.found.map((f) => `${f.keyword}: ${f.count}`).join(' · ');
       if (!r.count) return setMsg('cp-list-msg', `Nenhum produto válido achado (${resumo}). Tente outras palavras.`, true);
-      setMsg('cp-list-msg', `${r.count} produto(s) na lista (${resumo}). Confira a mensagem abaixo e escolha os grupos.`);
+      setMsg('cp-list-msg', mode === 'mlList'
+        ? `Lista criada no Mercado Livre com ${r.count} produto(s) (${resumo}). Confira a mensagem abaixo e escolha os grupos.`
+        : `${r.count} produto(s) na lista (${resumo}). Confira a mensagem abaixo e escolha os grupos.`);
       const coupon = coupons.find((x) => x.id === listingId);
       await openSend(coupon, r.text);
     } catch (err) {

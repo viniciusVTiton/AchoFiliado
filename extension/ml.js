@@ -160,10 +160,63 @@ export async function mlSyncCoupons(codes) {
 }
 
 /**
+ * Roda em https://myaccount.mercadolivre.com.br (mundo MAIN), com a sua sessão.
+ * Cria uma "Lista de afiliados", coloca os anúncios nela e publica no seu perfil, devolvendo o link da lista
+ * (o link já leva a sua identificação de afiliado). Mesmo caminho que a página "Favoritos > Listas" usa.
+ */
+export async function mlCreateAffiliateList(name, itemIds) {
+  const api = '/gz/navigation/api';
+  const token = document.querySelector('meta[name="csrf-token"]')?.content;
+  const headers = { Accept: 'application/json', 'Content-Type': 'application/json', ...(token ? { 'x-csrf-token': token } : {}) };
+  const call = async (method, path, body) => {
+    const res = await fetch(api + path, { method, credentials: 'include', headers, signal: AbortSignal.timeout(20_000), ...(body ? { body: JSON.stringify(body) } : {}) });
+    if (res.status === 401 || res.status === 403) throw new Error('O Mercado Livre pediu login de novo');
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.component?.message || data?.message || `Erro ${res.status} do Mercado Livre`);
+    return data;
+  };
+  const allLists = async () => (await call('GET', '/wishlist/lists/all'))?.lists ?? [];
+
+  try {
+    const before = new Set((await allLists()).map((l) => l.id));
+    const created = await call('POST', '/wishlist/list/create', { name, description: '', type: 'AFFILIATE', icon: '' });
+    if (created?.error) throw new Error(`O Mercado Livre não criou a lista: ${created?.component?.message || created.error.message || ''}`);
+    const list = (await allLists()).find((l) => !before.has(l.id) && l.type === 'AFFILIATE');
+    if (!list) throw new Error('A lista foi pedida, mas não apareceu em Favoritos > Listas');
+
+    let added = 0;
+    const failed = [];
+    for (const id of itemIds) {
+      try {
+        await call('POST', `/wishlist/lists/${list.id}/elements/add`, { entity_id: id, entity_type: 'item', platform: 'marketplace', platform_id: 1, list_id: list.id });
+        added++;
+      } catch (e) {
+        failed.push({ id, error: e.message });
+      }
+    }
+    if (!added) return { error: 'Nenhum produto entrou na lista', listId: list.id, failed };
+    // "Compartilhar": publica a lista no seu perfil e devolve o link com a sua identificação de afiliado.
+    const share = await call('GET', `/wishlist/affiliate/share/${list.id}`);
+    const url = share?.metadata?.affiliate?.url_attribution_list_detail ?? '';
+    if (!url) return { error: 'A lista foi criada, mas o Mercado Livre não devolveu o link', listId: list.id, added, failed };
+    return { listId: list.id, url, added, failed };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
  * Lê os produtos de uma página de lista do Mercado Livre (ex.: produtos válidos de um cupom).
  * Ignora anúncios patrocinados (links de clique) e repetidos.
  */
-export function readMlListing(limit) {
+export async function readMlListing(limit) {
+  // Em aba de segundo plano a página pode ainda estar montando: espera os produtos aparecerem (até 12 s).
+  for (let i = 0; i < 24; i++) {
+    if (/captcha|verification/i.test(location.pathname)) break;
+    if (document.querySelector('.poly-card') || /não encontramos|nenhum resultado/i.test(document.body?.innerText ?? '')) break;
+    if ([...document.scripts].some((s) => !s.src && s.textContent.includes('polycard'))) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
   // O Mercado Livre às vezes pede uma verificação de segurança: quem resolve é você, no Chrome.
   if (/captcha|verification/i.test(location.pathname)) return { blocked: true };
   const seen = new Set();
@@ -182,14 +235,44 @@ export function readMlListing(limit) {
     if (!/^https:\/\/(www|produto)\.mercadolivre\.com\.br\//.test(url) || seen.has(url)) continue;
     seen.add(url);
     const img = card.querySelector('img');
+    // Código do anúncio (MLB…): é o que entra numa lista de afiliado. Vem no "wid" do link ou no próprio endereço.
+    const itemId = (a.href.match(/[#?&]wid=(MLB\d+)/i)?.[1] ?? url.match(/MLB-?(\d{6,})/i)?.[0] ?? '').replace('-', '').toUpperCase();
     out.push({
       title: a.textContent.trim(),
       url,
+      itemId: /\/p\/MLB/i.test(url) && !a.href.includes('wid=') ? '' : itemId,
       price: amount(card, '.poly-price__current'),
       oldPrice: amount(card, '.andes-money-amount--previous'),
       image: img?.getAttribute('data-src') || img?.src || '',
     });
     if (out.length >= limit) break;
+  }
+  // Aba em segundo plano: o Mercado Livre não desenha os cartões, mas os produtos vêm nos dados da página.
+  if (!out.length) {
+    const data = [...document.scripts].filter((s) => !s.src && s.textContent.includes('polycard')).map((s) => s.textContent).join('\n')
+      .replace(/\\"/g, '"').replace(/\\u002F/gi, '/');
+    for (const chunk of data.split('"polycard":{').slice(1)) {
+      const itemId = chunk.match(/"metadata":\{"id":"(MLB\d+)"/)?.[1] ?? '';
+      const path = chunk.match(/"url":"((?:www|produto)\.mercadolivre\.com\.br\/[^"]+)"/)?.[1] ?? '';
+      if (!itemId || !path) continue;
+      const url = `https://${path}`.split('#')[0].split('?')[0];
+      if (seen.has(url)) continue;
+      seen.add(url);
+      const money = (v) => (v ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: Number(v) % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '');
+      out.push({
+        title: chunk.match(/"title":\{"text":"([^"]+)"/)?.[1] ?? '',
+        url,
+        itemId,
+        price: money(chunk.match(/"current_price":\{"value":([\d.]+)/)?.[1]),
+        oldPrice: money(chunk.match(/"previous_price":\{"value":([\d.]+)/)?.[1]),
+        image: '',
+      });
+      if (out.length >= limit) break;
+    }
+  }
+  // Nada achado: devolve o que a página mostrava, para entender o motivo.
+  if (!out.length) {
+    return { empty: true, page: location.host + location.pathname, title: document.title.slice(0, 80), cards: document.querySelectorAll('.poly-card').length, links: document.querySelectorAll('a[href]').length, text: (document.body?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 200) };
   }
   return out;
 }

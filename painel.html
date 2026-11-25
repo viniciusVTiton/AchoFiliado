@@ -687,6 +687,12 @@
             <label class="field"><span>O que procurar</span><input id="cp-list-words" type="text" autocomplete="off" placeholder="Ex.: computador, notebook, playstation 5"></label>
             <label class="field"><span>Produtos por item</span><input id="cp-list-per" type="number" min="1" max="10" value="3"></label>
           </div>
+          <label class="field"><span>Formato</span>
+            <select id="cp-list-mode">
+              <option value="links">Mensagem com um link por produto</option>
+              <option value="mlList">Lista no Mercado Livre (um link só; fica pública no seu perfil)</option>
+            </select>
+          </label>
           <div class="btn-row">
             <button class="btn btn-primary" type="submit" id="cp-list-btn">Montar lista</button>
             <button class="btn btn-ghost" type="button" id="cp-list-cancel">Fechar</button>

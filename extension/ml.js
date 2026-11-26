@@ -178,9 +178,23 @@ export async function mlCreateAffiliateList(name, itemIds) {
   const allLists = async () => (await call('GET', '/wishlist/lists/all'))?.lists ?? [];
 
   try {
-    const before = new Set((await allLists()).map((l) => l.id));
-    const created = await call('POST', '/wishlist/list/create', { name, description: '', type: 'AFFILIATE', icon: '' });
-    if (created?.error) throw new Error(`O Mercado Livre não criou a lista: ${created?.component?.message || created.error.message || ''}`);
+    const existing = await allLists();
+    const before = new Set(existing.map((l) => l.id));
+    const names = new Set(existing.map((l) => String(l.name).toLowerCase()));
+    // O Mercado Livre aceita no máximo 25 letras e não deixa repetir nome: se já existir, vira "... 2", "... 3".
+    const base = String(name).slice(0, 25).trim();
+    let finalName = base;
+    for (let n = 2; names.has(finalName.toLowerCase()) && n < 100; n++) {
+      const suffix = ` ${n}`;
+      finalName = base.slice(0, 25 - suffix.length).trim() + suffix;
+    }
+    const created = await call('POST', '/wishlist/list/create', { name: finalName, description: '', type: 'AFFILIATE', icon: '' });
+    if (created?.error) {
+      const why = created.error.internal_code === '1001' ? 'já existe uma lista com esse nome'
+        : /25 characters/i.test(created.error.message ?? '') ? 'o nome passa de 25 letras'
+        : created?.component?.message || created.error.message || '';
+      throw new Error(`O Mercado Livre não criou a lista "${finalName}": ${why}`);
+    }
     const list = (await allLists()).find((l) => !before.has(l.id) && l.type === 'AFFILIATE');
     if (!list) throw new Error('A lista foi pedida, mas não apareceu em Favoritos > Listas');
 

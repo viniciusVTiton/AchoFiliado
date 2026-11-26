@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AchoFiliado",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Gera seus links de afiliado do Mercado Livre para o robÃ´ AchoFiliado e adiciona produtos Ã  Vitrine.",
   "permissions": ["scripting", "alarms", "storage"],
   "host_permissions": [

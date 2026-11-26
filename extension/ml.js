@@ -349,7 +349,8 @@ export async function readMlListing(limit) {
   for (let i = 0; i < 24; i++) {
     if (/captcha|verification/i.test(location.pathname)) break;
     if (document.querySelector('.poly-card') || /não encontramos|nenhum resultado/i.test(document.body?.innerText ?? '')) break;
-    if ([...document.scripts].some((s) => !s.src && s.textContent.includes('polycard'))) break;
+    // Só vale o dado do produto ("polycard":{…), não o nome de arquivo "search.card.polycard.js".
+    if ([...document.scripts].some((s) => !s.src && /\\?"polycard\\?":\{/.test(s.textContent))) break;
     await new Promise((r) => setTimeout(r, 500));
   }
   // O Mercado Livre às vezes pede uma verificação de segurança: quem resolve é você, no Chrome.
@@ -407,7 +408,7 @@ export async function readMlListing(limit) {
   }
   // Nada achado: devolve o que a página mostrava, para entender o motivo.
   if (!out.length) {
-    return { empty: true, page: location.host + location.pathname, title: document.title.slice(0, 80), cards: document.querySelectorAll('.poly-card').length, links: document.querySelectorAll('a[href]').length, text: (document.body?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 200) };
+    return { empty: true, noResults: /não encontramos|nenhum resultado/i.test(document.body?.innerText ?? ''), page: location.host + location.pathname, title: document.title.slice(0, 80), cards: document.querySelectorAll('.poly-card').length, links: document.querySelectorAll('a[href]').length, text: (document.body?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 200) };
   }
   return out;
 }

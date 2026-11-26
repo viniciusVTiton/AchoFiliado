@@ -53,7 +53,8 @@ async function inTab(url, func, args, world = 'ISOLATED') {
     await new Promise((resolve) => {
       // Só vale o "carregou" da página de verdade (não o da aba em branco do começo).
       const done = (id, info, t) => {
-        if (id === tab.id && info.status === 'complete' && /^https:/.test(t?.url ?? '')) {
+        // Busca com filtro abre antes uma tela de "carregando" (?loader=true) e depois recarrega: espera a página final.
+        if (id === tab.id && info.status === 'complete' && /^https:/.test(t?.url ?? '') && !/[?&]loader=true/.test(t?.url ?? '')) {
           chrome.tabs.onUpdated.removeListener(done);
           resolve();
         }
@@ -71,15 +72,86 @@ async function inTab(url, func, args, world = 'ISOLATED') {
   }
 }
 
+/** Espera a aba terminar de carregar a página final (não a tela de "carregando" da busca). */
+async function pageReady(tabId, maxMs = 20_000) {
+  const ok = (t) => t?.status === 'complete' && /^https:/.test(t?.url ?? '') && !/[?&]loader=true/.test(t?.url ?? '');
+  if (ok(await chrome.tabs.get(tabId).catch(() => null))) return;
+  await new Promise((resolve) => {
+    const done = (id, info, t) => {
+      if (id === tabId && info.status === 'complete' && ok(t)) {
+        chrome.tabs.onUpdated.removeListener(done);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(done);
+    setTimeout(() => { chrome.tabs.onUpdated.removeListener(done); resolve(); }, maxMs);
+  });
+}
+
+/**
+ * Lê os produtos de uma busca do Mercado Livre. Com filtro, o Mercado Livre passa por
+ * uma ou duas telas de "carregando" antes da página final: tenta de novo até achar os produtos.
+ */
+async function readListingTab(url, limit) {
+  const tab = await chrome.tabs.create({ url, active: false });
+  let last = null;
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await pageReady(tab.id);
+      try {
+        const run = chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readMlListing, args: [limit] });
+        const late = new Promise((_, reject) => setTimeout(() => reject(new Error('demorou')), 30_000));
+        const [r] = await Promise.race([run, late]);
+        last = r?.result ?? null;
+      } catch {
+        last = null; // a página trocou no meio da leitura: lê de novo
+      }
+      if (Array.isArray(last) && last.length) return last;
+      if (last?.blocked || last?.noResults) return last;
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    return last;
+  } finally {
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
 /** Produtos válidos do cupom para cada palavra ("notebook", "playstation 5"), já com o seu link. */
-async function searchCouponProducts({ productsUrl, keywords = [], perKeyword = 3 }, tag, { links = true } = {}) {
-  if (!/^https:\/\/lista\.mercadolivre\.com\.br\//.test(productsUrl ?? '')) return { error: 'Cupom sem lista de produtos do Mercado Livre' };
+/**
+ * Filtros da busca do Mercado Livre no endereço: preço ("_PriceRange_2400-0") e ordem ("_OrderId_PRICE").
+ * O filtro de preço do Mercado Livre usa o preço do anúncio antes de cupom.
+ */
+export function searchUrl(productsUrl, word, { minPrice = 0, maxPrice = 0, sort = '' } = {}) {
+  const slug = encodeURIComponent(String(word).trim().toLowerCase().replace(/\s+/g, '-'));
+  const u = new URL(productsUrl);
+  // "/_Container_…" → "/notebook_Container_…"; categoria "/saude/" → "/saude/whey"
+  const base = u.pathname.replace(/\/+$/, '');
+  // Os filtros vão logo depois da palavra, na ordem do próprio Mercado Livre (ordem, preço, depois o resto).
+  // Em outra ordem ele devolve uma tela de "carregando" que só redireciona com a aba visível.
+  const min = Math.max(0, Math.floor(Number(minPrice) || 0));
+  const max = Math.max(0, Math.ceil(Number(maxPrice) || 0));
+  let filters = '';
+  if (sort === 'price_asc') filters += '_OrderId_PRICE';
+  if (sort === 'price_desc') filters += '_OrderId_PRICE*DESC';
+  if (min || max) filters += `_PriceRange_${min}-${max}`;
+  u.pathname = base.startsWith('/_') || !base
+    ? `/${slug}${filters}${base.replace(/^\//, '')}`
+    : `${base}/${slug}${filters}`;
+  return u.toString();
+}
+
+const toNumber = (s) => Number(String(s ?? '').replace(/\./g, '').replace(',', '.')) || 0;
+
+async function searchCouponProducts({ productsUrl, keywords = [], perKeyword = 3, minPrice = 0, maxPrice = 0, sort = '' }, tag, { links = true } = {}) {
+  // Só a lista oficial do cupom ("_Container_…") garante que todo produto achado aceita o cupom.
+  if (!/^https:\/\/lista\.mercadolivre\.com\.br\/_Container_/.test(productsUrl ?? '')) {
+    return { error: 'Este cupom não tem uma lista oficial de produtos para procurar (o Mercado Livre mostra só uma página de ofertas ou de categoria), então não dá para garantir que o produto aceita o cupom. Abra "Produtos válidos" e cole os links na lista.' };
+  }
   if (links && !tag) return { error: 'Etiqueta do Mercado Livre (ML_TAG) não configurada no robô' };
   const groups = [];
   for (const word of keywords.slice(0, 8)) {
-    const slug = encodeURIComponent(String(word).trim().toLowerCase().replace(/\s+/g, '-'));
-    const url = productsUrl.replace('https://lista.mercadolivre.com.br/', `https://lista.mercadolivre.com.br/${slug}`);
-    const found = (await inTab(url, readMlListing, [Math.min(Number(perKeyword) || 3, 10)])) ?? null;
+    const url = searchUrl(productsUrl, word, { minPrice, maxPrice, sort });
+    const found = (await readListingTab(url, Math.min(Number(perKeyword) || 3, 10))) ?? null;
     if (found?.blocked) {
       return { error: 'O Mercado Livre pediu uma verificação de segurança. Abra o Mercado Livre no Chrome, confirme que é você e tente de novo.' };
     }
@@ -90,19 +162,33 @@ async function searchCouponProducts({ productsUrl, keywords = [], perKeyword = 3
       groups.push({ keyword: word, items: [], debug: found?.empty ? found : { page: url, note: 'a aba não devolveu nada' } });
       continue;
     }
+    // Confere de novo o preço (o Mercado Livre já filtra; aqui é só uma garantia).
+    // O cartão pode mostrar o preço já com algum desconto, então vale o maior entre "de" e "por".
+    const inRange = (it) => {
+      const base = Math.max(toNumber(it.price), toNumber(it.oldPrice));
+      if (Number(minPrice) > 0 && base > 0 && base < Number(minPrice)) return false;
+      if (Number(maxPrice) > 0 && toNumber(it.price) > Number(maxPrice)) return false;
+      return true;
+    };
+    const rawCount = found.length;
+    found.splice(0, found.length, ...found.filter(inRange));
     if (!links) {
       groups.push({ keyword: word, items: found });
       continue;
     }
+    const linkErrors = [];
     for (const item of found) {
       try {
-        const link = await generateLink(item.url, tag);
+        const late = new Promise((_, reject) => setTimeout(() => reject(new Error('o gerador de links demorou demais')), 30_000));
+        const link = await Promise.race([generateLink(item.url, tag), late]);
         if (link?.shortUrl) items.push({ ...item, affiliateUrl: link.shortUrl });
-      } catch {
+        else linkErrors.push(link?.error || 'sem link');
+      } catch (e) {
         // sem link de afiliado, o produto fica de fora (nunca vai link sem a sua etiqueta)
+        linkErrors.push(e.message);
       }
     }
-    groups.push({ keyword: word, items });
+    groups.push({ keyword: word, items, ...(items.length ? {} : { debug: { read: rawCount, inPrice: found.length, prices: found.slice(0, 3).map((i) => `${i.price}|${i.oldPrice}`), linkErrors: linkErrors.slice(0, 3) } }) });
   }
   return { groups };
 }

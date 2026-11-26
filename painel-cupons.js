@@ -19,6 +19,12 @@ function validity(c) {
   return `vale até ${hora} de ${dia}`;
 }
 
+/** Compra mínima do cupom ("acima de R$2.499" → 2499), ou 0. */
+function couponMin(c) {
+  const m = String(c?.condition ?? '').match(/(?:acima|a partir) de R\$\s*([\d.]+(?:,\d{1,2})?)/i);
+  return m ? Number(m[1].replace(/\./g, '').replace(',', '.')) : 0;
+}
+
 export function initCupons({ roboCall }) {
   const $ = (id) => document.getElementById(id);
   const el = (tag, props = {}, ...kids) => {
@@ -194,6 +200,11 @@ export function initCupons({ roboCall }) {
     $('cp-list-form').hidden = false;
     $('cp-list-title').textContent = `Montar lista do cupom ${c.code}`;
     setMsg('cp-list-msg', '');
+    const min = couponMin(c);
+    $('cp-list-min').value = min || '';
+    $('cp-list-max').value = '';
+    $('cp-list-min-hint').hidden = !min;
+    $('cp-list-min-hint').textContent = min ? `O cupom vale para compras acima de R$ ${min.toLocaleString('pt-BR')}: o preço mínimo já vem com esse valor, para só entrar produto em que o cupom vale.` : '';
     $('cp-list-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
     $('cp-list-words').focus();
   }
@@ -214,7 +225,7 @@ export function initCupons({ roboCall }) {
       ? 'Procurando nos produtos do cupom e criando a lista no Mercado Livre… (pode levar 1 a 2 minutos)'
       : 'Procurando nos produtos do cupom e gerando os seus links… (pode levar 1 a 2 minutos)');
     try {
-      const r = await roboCall('/api/coupons/build-list', { method: 'POST', body: { id: listingId, keywords, perKeyword: $('cp-list-per').value, mode } });
+      const r = await roboCall('/api/coupons/build-list', { method: 'POST', body: { id: listingId, keywords, perKeyword: $('cp-list-per').value, mode, minPrice: $('cp-list-min').value, maxPrice: $('cp-list-max').value, sort: $('cp-list-sort').value } });
       const resumo = r.found.map((f) => `${f.keyword}: ${f.count}`).join(' · ');
       if (!r.count) return setMsg('cp-list-msg', `Nenhum produto válido achado (${resumo}). Tente outras palavras.`, true);
       setMsg('cp-list-msg', mode === 'mlList'
@@ -277,7 +288,14 @@ export function initCupons({ roboCall }) {
       ...(usable.length ? usable : []).map((c) => el('option', { value: c.id, textContent: c.code, selected: c.id === guess?.id })),
     );
     if (!usable.length) $('ml-ld-coupon').append(el('option', { value: '', textContent: 'Nenhum cupom conferido no Mercado Livre' }));
+    fillMinFromCoupon();
   }
+
+  function fillMinFromCoupon() {
+    const c = coupons.find((x) => x.id === $('ml-ld-coupon').value);
+    $('ml-ld-min').value = couponMin(c) || '';
+  }
+  $('ml-ld-coupon').addEventListener('change', fillMinFromCoupon);
 
   async function openMlList(l) {
     current = l;
@@ -394,7 +412,7 @@ export function initCupons({ roboCall }) {
     busy(['ml-ld-more-btn'], true);
     setMsg('ml-ld-msg', 'Procurando nos produtos do cupom e colocando na lista… (pode levar 1 a 2 minutos)');
     try {
-      const r = await roboCall('/api/ml-lists/more', { method: 'POST', body: { id: current.id, couponId, keywords, perKeyword: $('ml-ld-per').value } });
+      const r = await roboCall('/api/ml-lists/more', { method: 'POST', body: { id: current.id, couponId, keywords, perKeyword: $('ml-ld-per').value, minPrice: $('ml-ld-min').value, maxPrice: $('ml-ld-max').value, sort: $('ml-ld-sort').value } });
       const resumo = r.found.map((f) => `${f.keyword}: ${f.count}`).join(' · ');
       setMsg('ml-ld-msg', r.added
         ? `${r.added} produto(s) novo(s) na lista (${resumo}).`

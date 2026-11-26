@@ -220,6 +220,127 @@ export async function mlCreateAffiliateList(name, itemIds) {
 }
 
 /**
+ * Roda em https://myaccount.mercadolivre.com.br (mundo MAIN): mexe nas suas listas de afiliado.
+ *   lists                      → as suas listas de afiliado
+ *   items   {listId}           → os produtos de uma lista
+ *   add     {listId, itemIds}  → coloca anúncios (MLB…) na lista
+ *   remove  {bookmarkIds}      → tira produtos da lista
+ *   rename  {listId, name}     → muda o nome (até 25 letras)
+ *   delete  {listId}           → exclui a lista
+ *   share   {listId}           → publica no seu perfil e devolve o link (com a sua identificação de afiliado)
+ */
+export async function mlListOps(op, a = {}) {
+  const api = '/gz/navigation/api';
+  const token = document.querySelector('meta[name="csrf-token"]')?.content;
+  const headers = { Accept: 'application/json', 'Content-Type': 'application/json', ...(token ? { 'x-csrf-token': token } : {}) };
+  const call = async (method, path, body) => {
+    const res = await fetch(api + path, { method, credentials: 'include', headers, signal: AbortSignal.timeout(20_000), ...(body ? { body: JSON.stringify(body) } : {}) });
+    if (res.status === 401 || res.status === 403) throw new Error('O Mercado Livre pediu login de novo');
+    const data = await res.json().catch(() => null);
+    const err = data?.error;
+    if (!res.ok || err) {
+      const why = err?.internal_code === '1001' ? 'já existe uma lista com esse nome'
+        : /25 characters/i.test(err?.message ?? '') ? 'o nome passa de 25 letras'
+        : data?.component?.message || err?.message || `erro ${res.status}`;
+      throw new Error(`O Mercado Livre recusou: ${why}`);
+    }
+    return data;
+  };
+  const brl = (v) => (typeof v === 'number' ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
+
+  try {
+    if (op === 'lists') {
+      // O Mercado Livre devolve no máximo 32 por vez.
+      const all = [];
+      for (let offset = 0; offset < 320; offset += 32) {
+        const d = await call('GET', `/wishlist/lists/all?offset=${offset}&limit=32`);
+        all.push(...(d?.lists ?? []));
+        if (!d?.lists?.length || offset + 32 >= (d?.paging?.total ?? 0)) break;
+      }
+      return {
+        lists: all.filter((l) => l.type === 'AFFILIATE').map((l) => ({
+          id: l.id,
+          name: l.name,
+          privacy: l.privacy,
+          total: l.elements?.total ?? 0,
+          images: (l.elements?.images ?? []).slice(0, 4),
+          main: l.subtype === 'RECOMMENDATIONS' || /minhas recomenda/i.test(l.name ?? ''),
+        })),
+      };
+    }
+    if (op === 'items') {
+      const items = [];
+      for (let offset = 0; offset < 600; offset += 32) {
+        const d = await call('GET', `/wishlist/list/details/${encodeURIComponent(a.listId)}?offset=${offset}&limit=32`);
+        const cards = d?.list?.elements?.polycards ?? [];
+        for (const c of cards) {
+          const m = c.metadata ?? {};
+          const comp = (t) => (c.components ?? []).find((x) => x.type === t);
+          const price = comp('price')?.price ?? {};
+          const pic = c.pictures?.pictures?.[0]?.id;
+          items.push({
+            bookmarkId: m.bookmarks_id,
+            itemId: m.id,
+            title: comp('title')?.title?.text ?? '',
+            price: brl(price.current_price?.value),
+            oldPrice: brl(price.previous_price?.value),
+            image: pic ? `https://http2.mlstatic.com/D_Q_NP_2X_${pic}-V.webp` : '',
+            url: m.url ? `https://${String(m.url).replace(/^https?:\/\//, '')}` : '',
+          });
+        }
+        const total = d?.paging?.total ?? 0;
+        if (!cards.length || offset + 32 >= total) {
+          return { name: d?.list?.name ?? '', total, items };
+        }
+      }
+      return { items };
+    }
+    if (op === 'add') {
+      let added = 0;
+      const failed = [];
+      for (const id of a.itemIds ?? []) {
+        try {
+          await call('POST', `/wishlist/lists/${a.listId}/elements/add`, { entity_id: id, entity_type: 'item', platform: 'marketplace', platform_id: 1, list_id: a.listId });
+          added++;
+        } catch (e) {
+          failed.push({ id, error: e.message });
+        }
+      }
+      return { added, failed };
+    }
+    if (op === 'remove') {
+      let removed = 0;
+      const failed = [];
+      for (const id of a.bookmarkIds ?? []) {
+        try {
+          await call('DELETE', `/wishlist/elements/delete/${encodeURIComponent(id)}`, {});
+          removed++;
+        } catch (e) {
+          failed.push({ id, error: e.message });
+        }
+      }
+      return { removed, failed };
+    }
+    if (op === 'rename') {
+      await call('PUT', '/wishlist/list/edit', { id: a.listId, name: String(a.name).slice(0, 25).trim(), type: 'AFFILIATE', description: '' });
+      return { ok: true };
+    }
+    if (op === 'delete') {
+      await call('DELETE', `/wishlist/list/delete/${encodeURIComponent(a.listId)}?from=list_hub`, {});
+      return { ok: true };
+    }
+    if (op === 'share') {
+      const share = await call('GET', `/wishlist/affiliate/share/${encodeURIComponent(a.listId)}`);
+      const url = share?.metadata?.affiliate?.url_attribution_list_detail ?? '';
+      return url ? { url } : { error: 'O Mercado Livre não devolveu o link da lista' };
+    }
+    return { error: `Operação desconhecida: ${op}` };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
  * Lê os produtos de uma página de lista do Mercado Livre (ex.: produtos válidos de um cupom).
  * Ignora anúncios patrocinados (links de clique) e repetidos.
  */

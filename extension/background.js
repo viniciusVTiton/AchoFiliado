@@ -2,7 +2,7 @@
  * Fica ligado ao robô (http://localhost:3000) esperando pedidos de link do Mercado Livre.
  * Cada pedido é atendido dentro de uma aba do Mercado Livre (onde você está logado).
  */
-import { mlCreateLink, mlSyncCoupons, readMlListing, mlCreateAffiliateList } from './ml.js';
+import { mlCreateLink, mlSyncCoupons, readMlListing, mlCreateAffiliateList, mlListOps } from './ml.js';
 
 export const SERVER = 'http://localhost:3000';
 const ML_HOME = 'https://www.mercadolivre.com.br/afiliados/linkbuilder';
@@ -135,6 +135,33 @@ async function createCouponList(job) {
   return { groups: search.groups, url: made.url, added: made.added, failed: made.failed ?? [] };
 }
 
+const LISTS_PAGE = 'https://myaccount.mercadolivre.com.br/bookmarks/list?tab=list';
+
+/** Uma operação nas suas listas de afiliado (ler, adicionar, remover, renomear, excluir, publicar). */
+async function listOp(op, args) {
+  const r = await inTab(LISTS_PAGE, mlListOps, [op, args ?? {}], 'MAIN');
+  return r ?? { error: 'A página de listas do Mercado Livre não respondeu' };
+}
+
+/** Mais produtos do cupom numa lista que já existe (só os que ainda não estão nela). */
+async function addMoreFromCoupon(job) {
+  const search = await searchCouponProducts(job, '', { links: false });
+  if (search.error) return search;
+  const current = await listOp('items', { listId: job.listId });
+  if (current.error) return current;
+  const have = new Set((current.items ?? []).map((i) => i.itemId));
+  const ids = [];
+  for (const g of search.groups) {
+    for (const it of g.items ?? []) {
+      if (it.itemId && !have.has(it.itemId) && !ids.includes(it.itemId)) ids.push(it.itemId);
+    }
+  }
+  if (!ids.length) return { groups: search.groups, added: 0, failed: [] };
+  const r = await listOp('add', { listId: job.listId, itemIds: ids });
+  if (r.error) return r;
+  return { groups: search.groups, added: r.added, failed: r.failed ?? [] };
+}
+
 /** Abre a página de cupons em segundo plano, roda a leitura e fecha a aba. */
 async function syncCoupons(codes) {
   const tab = await chrome.tabs.create({ url: 'https://www.mercadolivre.com.br/cupons', active: false });
@@ -187,6 +214,17 @@ async function loop() {
         let result;
         try {
           result = await createCouponList(job);
+        } catch (e) {
+          result = { error: e.message };
+        }
+        await post('/api/ml/result', { id: job.id, data: result.error ? undefined : result, error: result.error ?? '' });
+        continue;
+      }
+      // Suas listas de afiliado: ler, editar, excluir e completar com mais produtos do cupom.
+      if (job.kind === 'mlListOp' || job.kind === 'couponMlListMore') {
+        let result;
+        try {
+          result = job.kind === 'mlListOp' ? await listOp(job.op, job.args) : await addMoreFromCoupon(job);
         } catch (e) {
           result = { error: e.message };
         }

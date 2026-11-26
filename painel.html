@@ -139,6 +139,12 @@
     .cp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
     .cp-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 6px; }
     .cp-item.selected { border-color: var(--accent); }
+    .ml-row { display: grid; grid-template-columns: auto 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+    .ml-row img { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: #fff; }
+    .ml-row a { color: inherit; }
+    .ml-thumbs { display: flex; gap: 4px; }
+    .ml-thumbs img { width: 36px; height: 36px; object-fit: contain; border-radius: 6px; background: #fff; }
+    .cp-item.clickable { cursor: pointer; }
     .cp-code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; letter-spacing: 0.04em; }
     .cp-images { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
     .cp-img-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: grid; gap: 8px; }
@@ -699,6 +705,57 @@
           </div>
           <p class="form-msg" id="cp-list-msg" hidden></p>
         </form>
+
+        <div class="vt-send-head" style="margin-top:20px">
+          <h3>Minhas listas no Mercado Livre</h3>
+          <button class="btn btn-sm btn-ghost" type="button" id="ml-lists-load">Carregar minhas listas</button>
+        </div>
+        <p class="muted">As suas listas de afiliado. Clique numa lista para editar o nome, tirar ou colocar produtos, completar com mais produtos de um cupom, mandar no grupo ou excluir.</p>
+        <p class="form-msg" id="ml-lists-msg" hidden></p>
+        <ul class="cp-list" id="ml-lists"></ul>
+
+        <div class="card" id="ml-list-detail" hidden style="margin-top:16px">
+          <div class="vt-send-head">
+            <h3 id="ml-ld-title">Lista</h3>
+            <button class="btn btn-sm btn-ghost" type="button" id="ml-ld-close">Fechar</button>
+          </div>
+          <p class="muted" id="ml-ld-info"></p>
+
+          <form class="field-row" id="ml-ld-rename-form" novalidate>
+            <label class="field"><span>Nome (até 25 letras, sem acento)</span><input id="ml-ld-name" type="text" maxlength="25" autocomplete="off"></label>
+            <div class="btn-row" style="align-self:end"><button class="btn btn-sm btn-ghost" type="submit" id="ml-ld-rename-btn">Salvar nome</button></div>
+          </form>
+
+          <div class="btn-row">
+            <button class="btn btn-sm btn-primary" type="button" id="ml-ld-share">Enviar no grupo</button>
+            <a class="btn btn-sm btn-ghost" id="ml-ld-open" target="_blank" rel="noopener">Abrir no Mercado Livre</a>
+            <button class="btn btn-sm btn-ghost" type="button" id="ml-ld-delete">Excluir lista</button>
+          </div>
+          <p class="form-msg" id="ml-ld-msg" hidden></p>
+
+          <h4 style="margin-top:14px">Produtos</h4>
+          <div class="btn-row">
+            <label class="vt-all"><input type="checkbox" id="ml-ld-all"> Marcar todos</label>
+            <button class="btn btn-sm btn-ghost" type="button" id="ml-ld-remove">Tirar marcados</button>
+          </div>
+          <ul class="cp-list" id="ml-ld-items"></ul>
+
+          <h4 style="margin-top:14px">Colocar produtos pelo link</h4>
+          <form id="ml-ld-add-form" novalidate>
+            <label class="field"><span>Links do Mercado Livre (um por linha)</span><textarea id="ml-ld-links" rows="3" placeholder="https://produto.mercadolivre.com.br/MLB-...&#10;https://meli.la/..."></textarea></label>
+            <div class="btn-row"><button class="btn btn-sm btn-ghost" type="submit" id="ml-ld-add-btn">Colocar na lista</button></div>
+          </form>
+
+          <h4 style="margin-top:14px">Mais produtos de um cupom</h4>
+          <form id="ml-ld-more-form" novalidate>
+            <div class="field-row">
+              <label class="field"><span>Cupom</span><select id="ml-ld-coupon"></select></label>
+              <label class="field"><span>O que procurar</span><input id="ml-ld-words" type="text" autocomplete="off" placeholder="Ex.: notebook, fone"></label>
+              <label class="field"><span>Produtos por item</span><input id="ml-ld-per" type="number" min="1" max="10" value="3"></label>
+            </div>
+            <div class="btn-row"><button class="btn btn-sm btn-ghost" type="submit" id="ml-ld-more-btn">Procurar e colocar</button></div>
+          </form>
+        </div>
 
         <form class="card" id="cp-edit-form" novalidate hidden style="margin-top:16px">
           <h3 id="cp-edit-title">Editar cupom</h3>

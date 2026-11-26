@@ -222,10 +222,231 @@ export function initCupons({ roboCall }) {
         : `${r.count} produto(s) na lista (${resumo}). Confira a mensagem abaixo e escolha os grupos.`);
       const coupon = coupons.find((x) => x.id === listingId);
       await openSend(coupon, r.text);
+      if (mode === 'mlList' && mlLists.length) loadMlLists();
     } catch (err) {
       setMsg('cp-list-msg', err.message, true);
     } finally {
       $('cp-list-btn').disabled = false;
+    }
+  });
+
+  // ---------- Minhas listas no Mercado Livre ----------
+  // Cada ação abre uma aba rápida do Mercado Livre pela extensão, então leva alguns segundos.
+  let mlLists = [];
+  let current = null; // lista aberta
+  let currentItems = [];
+
+  const busy = (ids, on) => ids.forEach((id) => { $(id).disabled = on; });
+
+  async function loadMlLists() {
+    busy(['ml-lists-load'], true);
+    setMsg('ml-lists-msg', 'Lendo as suas listas no Mercado Livre…');
+    try {
+      const r = await roboCall('/api/ml-lists');
+      mlLists = r.lists ?? [];
+      setMsg('ml-lists-msg', mlLists.length ? '' : 'Nenhuma lista de afiliado ainda. Use "Montar lista" num cupom para criar.');
+      renderMlLists();
+    } catch (err) {
+      setMsg('ml-lists-msg', err.message, true);
+    } finally {
+      busy(['ml-lists-load'], false);
+    }
+  }
+
+  function renderMlLists() {
+    $('ml-lists').replaceChildren(
+      ...mlLists.map((l) => el('li', { className: `cp-item clickable${current?.id === l.id ? ' selected' : ''}`, onclick: () => openMlList(l) },
+        el('div', { className: 'vt-send-head' },
+          el('strong', { textContent: l.name }),
+          el('div', { className: 'ml-thumbs' }, ...(l.images ?? []).map((src) => el('img', { src, alt: '', loading: 'lazy' }))),
+        ),
+        el('small', { className: 'muted', textContent: `${l.total} produto${l.total === 1 ? '' : 's'} · ${l.privacy === 'PUBLIC' ? 'pública' : 'privada'}` }),
+      )),
+    );
+  }
+
+  function guessCoupon(name) {
+    const lower = String(name ?? '').toLowerCase();
+    return coupons.find((c) => c.official?.productsUrl && lower.includes(String(c.code).toLowerCase()));
+  }
+
+  function fillCouponSelect(listName) {
+    const usable = coupons.filter((c) => c.official?.productsUrl);
+    const guess = guessCoupon(listName);
+    $('ml-ld-coupon').replaceChildren(
+      ...(usable.length ? usable : []).map((c) => el('option', { value: c.id, textContent: c.code, selected: c.id === guess?.id })),
+    );
+    if (!usable.length) $('ml-ld-coupon').append(el('option', { value: '', textContent: 'Nenhum cupom conferido no Mercado Livre' }));
+  }
+
+  async function openMlList(l) {
+    current = l;
+    renderMlLists();
+    $('ml-list-detail').hidden = false;
+    $('ml-ld-title').textContent = l.name;
+    $('ml-ld-name').value = l.name;
+    $('ml-ld-open').href = `https://myaccount.mercadolivre.com.br/bookmarks/wishlist/hub/detail/${encodeURIComponent(l.id)}`;
+    $('ml-ld-delete').hidden = !!l.main;
+    $('ml-ld-rename-form').hidden = !!l.main;
+    fillCouponSelect(l.name);
+    setMsg('ml-ld-msg', '');
+    $('ml-list-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    await loadItems();
+  }
+
+  async function loadItems() {
+    $('ml-ld-info').textContent = 'Carregando os produtos…';
+    $('ml-ld-items').replaceChildren();
+    $('ml-ld-all').checked = false;
+    try {
+      const r = await roboCall(`/api/ml-lists/items?id=${encodeURIComponent(current.id)}`);
+      currentItems = r.items ?? [];
+      current.total = r.total ?? currentItems.length;
+      $('ml-ld-info').textContent = `${current.total} produto${current.total === 1 ? '' : 's'} · ${current.privacy === 'PUBLIC' ? 'pública no seu perfil' : 'privada'}`;
+      $('ml-ld-items').replaceChildren(
+        ...currentItems.map((it) => el('li', { className: 'cp-item ml-row' },
+          el('input', { type: 'checkbox', name: 'ml-ld-item', value: it.bookmarkId }),
+          it.image ? el('img', { src: it.image, alt: '', loading: 'lazy' }) : el('span'),
+          el('div', {},
+            el('a', { href: it.url, target: '_blank', rel: 'noopener', textContent: it.title || it.itemId }),
+            el('small', { className: 'muted', textContent: [it.oldPrice ? `de R$ ${it.oldPrice}` : '', it.price ? `por R$ ${it.price}` : ''].filter(Boolean).join(' ') }),
+          ),
+          el('small', { className: 'muted', textContent: it.itemId }),
+        )),
+      );
+      if (!currentItems.length) $('ml-ld-items').append(el('p', { className: 'muted', textContent: 'A lista está vazia.' }));
+      renderMlLists();
+    } catch (err) {
+      $('ml-ld-info').textContent = '';
+      setMsg('ml-ld-msg', err.message, true);
+    }
+  }
+
+  $('ml-lists-load').addEventListener('click', loadMlLists);
+  $('ml-ld-close').addEventListener('click', () => {
+    current = null;
+    $('ml-list-detail').hidden = true;
+    renderMlLists();
+  });
+  $('ml-ld-all').addEventListener('change', (e) => {
+    document.querySelectorAll('input[name="ml-ld-item"]').forEach((i) => { i.checked = e.target.checked; });
+  });
+
+  $('ml-ld-rename-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    busy(['ml-ld-rename-btn'], true);
+    try {
+      const r = await roboCall('/api/ml-lists/rename', { method: 'POST', body: { id: current.id, name: $('ml-ld-name').value } });
+      current.name = r.name;
+      $('ml-ld-title').textContent = r.name;
+      $('ml-ld-name').value = r.name;
+      setMsg('ml-ld-msg', 'Nome salvo.');
+      renderMlLists();
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-rename-btn'], false);
+    }
+  });
+
+  $('ml-ld-remove').addEventListener('click', async () => {
+    const ids = [...document.querySelectorAll('input[name="ml-ld-item"]:checked')].map((i) => i.value);
+    if (!ids.length) return setMsg('ml-ld-msg', 'Marque os produtos que quer tirar.', true);
+    if (!confirm(`Tirar ${ids.length} produto(s) da lista "${current.name}"?`)) return;
+    busy(['ml-ld-remove'], true);
+    setMsg('ml-ld-msg', 'Tirando os produtos…');
+    try {
+      const r = await roboCall('/api/ml-lists/remove', { method: 'POST', body: { bookmarkIds: ids } });
+      setMsg('ml-ld-msg', `${r.removed} produto(s) tirado(s).${r.failed?.length ? ` ${r.failed.length} não saíram: ${r.failed[0].error}` : ''}`, !!r.failed?.length);
+      await loadItems();
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-remove'], false);
+    }
+  });
+
+  $('ml-ld-add-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const links = $('ml-ld-links').value.trim();
+    if (!links) return setMsg('ml-ld-msg', 'Cole pelo menos um link.', true);
+    busy(['ml-ld-add-btn'], true);
+    setMsg('ml-ld-msg', 'Colocando os produtos na lista…');
+    try {
+      const r = await roboCall('/api/ml-lists/add', { method: 'POST', body: { id: current.id, links } });
+      const fails = (r.failed ?? []).map((f) => `${f.link ?? f.id}: ${f.error}`).join('\n');
+      setMsg('ml-ld-msg', `${r.added} produto(s) colocado(s).${fails ? `\nFicaram de fora:\n${fails}` : ''}`, !!fails);
+      if (r.added) $('ml-ld-links').value = '';
+      await loadItems();
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-add-btn'], false);
+    }
+  });
+
+  $('ml-ld-more-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const couponId = $('ml-ld-coupon').value;
+    const keywords = $('ml-ld-words').value.trim();
+    if (!couponId) return setMsg('ml-ld-msg', 'Escolha um cupom conferido no Mercado Livre.', true);
+    if (!keywords) return setMsg('ml-ld-msg', 'Escreva o que procurar, ex.: notebook, fone.', true);
+    busy(['ml-ld-more-btn'], true);
+    setMsg('ml-ld-msg', 'Procurando nos produtos do cupom e colocando na lista… (pode levar 1 a 2 minutos)');
+    try {
+      const r = await roboCall('/api/ml-lists/more', { method: 'POST', body: { id: current.id, couponId, keywords, perKeyword: $('ml-ld-per').value } });
+      const resumo = r.found.map((f) => `${f.keyword}: ${f.count}`).join(' · ');
+      setMsg('ml-ld-msg', r.added
+        ? `${r.added} produto(s) novo(s) na lista (${resumo}).`
+        : `Nenhum produto novo (${resumo}). Os achados já estavam na lista ou não há resultados; tente outras palavras.`, !r.added);
+      await loadItems();
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-more-btn'], false);
+    }
+  });
+
+  $('ml-ld-share').addEventListener('click', async () => {
+    if (current.privacy !== 'PUBLIC' && !confirm('Para mandar no grupo, a lista será publicada no seu perfil de afiliado (fica pública). Continuar?')) return;
+    busy(['ml-ld-share'], true);
+    setMsg('ml-ld-msg', 'Pegando o link da lista…');
+    try {
+      const coupon = guessCoupon(current.name);
+      const r = await roboCall('/api/ml-lists/share', { method: 'POST', body: { id: current.id, name: current.name, total: current.total, couponId: coupon?.id ?? '' } });
+      current.privacy = 'PUBLIC';
+      setMsg('ml-ld-msg', `Link da lista: ${r.url}`);
+      if (coupon) await openSend(coupon, r.text);
+      else {
+        selectedId = null;
+        renderList();
+        $('cp-send-form').hidden = false;
+        $('cp-send-title').textContent = `Enviar a lista ${current.name}`;
+        setMsg('cp-send-msg', '');
+        $('cp-send-text').value = r.text;
+        await loadTargets();
+        $('cp-send-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-share'], false);
+    }
+  });
+
+  $('ml-ld-delete').addEventListener('click', async () => {
+    if (!confirm(`Excluir a lista "${current.name}" do Mercado Livre? Não dá para desfazer, e o link dela para de funcionar.`)) return;
+    busy(['ml-ld-delete'], true);
+    try {
+      await roboCall('/api/ml-lists/delete', { method: 'POST', body: { id: current.id } });
+      setMsg('ml-lists-msg', `Lista "${current.name}" excluída.`);
+      current = null;
+      $('ml-list-detail').hidden = true;
+      await loadMlLists();
+    } catch (err) {
+      setMsg('ml-ld-msg', err.message, true);
+    } finally {
+      busy(['ml-ld-delete'], false);
     }
   });
 

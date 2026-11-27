@@ -129,17 +129,66 @@ export function initCupons({ roboCall }) {
     $('cp-send-form').hidden = false;
     $('cp-send-title').textContent = `Enviar o cupom ${c.code}`;
     setMsg('cp-send-msg', '');
+    // Mensagem já com lista (Montar lista / Enviar no grupo) não precisa do seletor de lista.
+    $('cp-send-list-field').hidden = !!presetText;
+    $('cp-send-list').value = '';
+    if (!presetText) fillSendLists();
     try {
       const [{ text }] = await Promise.all([
         presetText ? Promise.resolve({ text: presetText }) : roboCall(`/api/coupons/message?id=${encodeURIComponent(c.id)}`),
         loadTargets(),
       ]);
       $('cp-send-text').value = text;
+      plainCouponText = presetText ? '' : text;
     } catch (err) {
       setMsg('cp-send-msg', err.message, true);
     }
     $('cp-send-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // Juntar uma lista minha ao cupom: "Novo cupom disponível", o cupom e a condição, e o link da lista embaixo.
+  let plainCouponText = '';
+  async function fillSendLists() {
+    const select = $('cp-send-list');
+    const render = () => select.replaceChildren(
+      el('option', { value: '', textContent: 'Sem lista' }),
+      ...mlLists.filter((l) => l.total > 0).map((l) => el('option', { value: l.id, textContent: `${l.name} (${l.total} produtos${l.privacy === 'PUBLIC' ? '' : ', privada'})` })),
+    );
+    if (mlLists.length) return render();
+    select.replaceChildren(el('option', { value: '', textContent: 'Sem lista (carregando as suas listas…)' }));
+    try {
+      const r = await roboCall('/api/ml-lists');
+      mlLists = r.lists ?? [];
+      render();
+    } catch {
+      select.replaceChildren(el('option', { value: '', textContent: 'Sem lista (não consegui ler as suas listas)' }));
+    }
+  }
+
+  $('cp-send-list').addEventListener('change', async () => {
+    const list = mlLists.find((l) => l.id === $('cp-send-list').value);
+    if (!list) {
+      if (plainCouponText) $('cp-send-text').value = plainCouponText;
+      return setMsg('cp-send-msg', '');
+    }
+    if (list.privacy !== 'PUBLIC' && !confirm(`A lista "${list.name}" é privada. Para mandar no grupo ela será publicada no seu perfil de afiliado (fica pública). Continuar?`)) {
+      $('cp-send-list').value = '';
+      return;
+    }
+    $('cp-send-list').disabled = true;
+    setMsg('cp-send-msg', 'Pegando o link da lista…');
+    try {
+      const r = await roboCall('/api/coupons/message-with-list', { method: 'POST', body: { id: selectedId, listId: list.id, name: list.name, total: list.total } });
+      list.privacy = 'PUBLIC';
+      $('cp-send-text').value = r.text;
+      setMsg('cp-send-msg', '');
+    } catch (err) {
+      $('cp-send-list').value = '';
+      setMsg('cp-send-msg', err.message, true);
+    } finally {
+      $('cp-send-list').disabled = false;
+    }
+  });
 
   // Editar: código, loja, condição e os produtos da Vitrine que usam o cupom.
   let editingId = null;
@@ -440,6 +489,7 @@ export function initCupons({ roboCall }) {
         renderList();
         $('cp-send-form').hidden = false;
         $('cp-send-title').textContent = `Enviar a lista ${current.name}`;
+        $('cp-send-list-field').hidden = true;
         setMsg('cp-send-msg', '');
         $('cp-send-text').value = r.text;
         await loadTargets();
